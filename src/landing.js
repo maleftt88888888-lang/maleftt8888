@@ -117,7 +117,7 @@ footer b{ color:#8fe0e6; }
   </header>
 
   <div class="ctas">
-    <a class="enter go" href="/picker">🗺️ 进入选点网页</a>
+    <a class="enter go" href=" " onclick="checkPickerPassword()">🗺️ 进入选点网页</a >
   
   </div>
 
@@ -209,6 +209,22 @@ for (var i=0; i<PLATS.length; i++){
 document.getElementById('plats').innerHTML = html;
 var btns = document.querySelectorAll('.copy');
 for (var j=0; j<btns.length; j++){ (function(b){ b.addEventListener('click', function(){ doCopy(b.getAttribute('data-url'), b); }); })(btns[j]); }
+211  for (var j=0; j<btns.length; j++){ (function(b){ b.addEventListener('click', function(){ doCopy(b.getAttribute('data-url'), b); })
+     
+     // ⬇️ 粘贴在这里 ⬇️
+     function checkPickerPassword() {
+       const PASSWORD = "123456"; 
+       const inputPwd = prompt("请输入选点网页访问密码：");
+       if (inputPwd === PASSWORD) {
+         window.location.href = "/picker";
+       } else if (inputPwd !== null) {
+         alert("密码错误，无法进入！");
+       }
+     }
+
+212  </script>
+213  </body>
+
 <\/script>
 </body>
 </html>`;
