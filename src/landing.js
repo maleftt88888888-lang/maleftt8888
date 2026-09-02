@@ -83,7 +83,7 @@ footer b{ color:#8fe0e6; }
 <body>
 <div class="wrap">
   <header>
-    <div class="logowrap">< img class="logo" src="/icon.svg" alt="logo"></div>
+    <div class="logowrap"><img class="logo" src="/icon.svg" alt="logo"></div>
     <h1>iOS Location Spoofer · 虚拟定位</h1>
     <p class="synced">✅ 已同步上游：随机扰动半径 · 港澳台/百度坐标解析</p >
   </header>
