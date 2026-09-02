@@ -209,7 +209,7 @@ for (var i=0; i<PLATS.length; i++){
 document.getElementById('plats').innerHTML = html;
 var btns = document.querySelectorAll('.copy');
 for (var j=0; j<btns.length; j++){ (function(b){ b.addEventListener('click', function(){ doCopy(b.getAttribute('data-url'), b); }); })(btns[j]); }
-211  for (var j=0; j<btns.length; j++){ (function(b){ b.addEventListener('click', function(){ doCopy(b.getAttribute('data-url'), b); })
+for (var j=0; j<btns.length; j++){ (function(b){ b.addEventListener('click', function(){ doCopy(b.getAttribute('data-url'), b); })
      
      // ⬇️ 粘贴在这里 ⬇️
      function checkPickerPassword() {
@@ -221,9 +221,8 @@ for (var j=0; j<btns.length; j++){ (function(b){ b.addEventListener('click', fun
          alert("密码错误，无法进入！");
        }
      }
-
-212  </script>
-213  </body>
+</script>
+</body>
 
 <\/script>
 </body>
