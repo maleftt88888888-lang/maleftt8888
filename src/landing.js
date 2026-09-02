@@ -25,7 +25,16 @@ body{
     var(--bg);
   background-attachment:fixed;
 }
-.wrap{ max-width:600px; margin:0 auto; padding:20px 16px calc(44px + env(safe-area-inset-bottom)); }
+.watermark{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+  opacity:0.12;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='360' height='200'><text x='20' y='100' fill='%23ffffff' font-size='13' font-family='sans-serif' transform='rotate(-22, 180, 100)'>小红书独家技术ID1134717149 可乐加糖</text></svg>");
+  background-repeat:repeat;
+}
+.wrap{ position:relative; z-index:1; max-width:600px; margin:0 auto; padding:20px 16px calc(44px + env(safe-area-inset-bottom)); }
 
 header{ text-align:center; padding:8px 0 6px; }
 header .logowrap{ position:relative; width:74px; margin:0 auto 14px; }
@@ -81,15 +90,16 @@ footer b{ color:#8fe0e6; }
 </style>
 </head>
 <body>
+<div class="watermark"></div>
 <div class="wrap">
   <header>
-    <div class="logowrap"><img class="logo" src="/icon.svg" alt="logo"></div>
+    <div class="logowrap">< img class="logo" src="/icon.svg" alt="logo"></div>
     <h1>小红书ID 1134717149 🌏号LLME-love  ·可乐加糖 虚拟定位</h1>
     <p class="synced">✅ 已同步上游：随机扰动半径 · 港澳台/百度坐标解析</p >
   </header>
 
   <div class="ctas">
-    <button type="button" class="enter go" onclick="openPasswordModal()">🗺️ 进入选点网页</button>
+    <button type="button" class="enter go" onclick="openPasswordModal('/picker')">🗺️ 进入选点网页</button>
   </div>
 
   <div class="divider"></div>
@@ -120,7 +130,7 @@ footer b{ color:#8fe0e6; }
 <div class="modal-mask" id="pwdModal">
   <div class="modal-box">
     <h3>🔒 身份验证</h3>
-    <p>请输入选点页面访问密码</p >
+    <p>请输入访问密码</p >
     <input type="password" id="pwdInput" placeholder="请输入密码" autocomplete="off">
     <div class="modal-btns">
       <button type="button" class="modal-btn cancel" onclick="closePasswordModal()">取消</button>
@@ -133,8 +143,10 @@ footer b{ color:#8fe0e6; }
 
 <script>
 const ACCESS_PASSWORD = "123456"; 
+var targetRedirectUrl = "";
 
-function openPasswordModal() {
+function openPasswordModal(targetUrl) {
+  targetRedirectUrl = targetUrl || "/picker";
   document.getElementById('pwdModal').style.display = 'flex';
   document.getElementById('pwdInput').value = '';
   setTimeout(function(){ document.getElementById('pwdInput').focus(); }, 100);
@@ -142,14 +154,17 @@ function openPasswordModal() {
 
 function closePasswordModal() {
   document.getElementById('pwdModal').style.display = 'none';
+  targetRedirectUrl = "";
 }
 
 function submitPassword() {
   const val = document.getElementById('pwdInput').value;
   if (val === ACCESS_PASSWORD) {
-    window.location.href = "/picker";
+    var dest = targetRedirectUrl || "/picker";
+    closePasswordModal();
+    window.location.href = dest;
   } else {
-    toast("密码错误，无法进入！");
+    toast("密码错误，无法操作！");
   }
 }
 
@@ -162,7 +177,7 @@ function u(file){ return origin + '/' + file; }
 var qxExtra = ', tag=iOS Location Spoofer, update-interval=172800, opt-parser=true, enabled=true';
 var PLATS = [
   { name:'Surge', file:'ios-location-spoofer.sgmodule', scheme:function(x){ return 'surge:///install-module?url=' + encodeURIComponent(x); } },
-  { name:'Shadowrocket', file:'ios-location-spoofer.sgmodule', scheme:function(x){ return 'shadowrocket://install?module=' + encodeURIComponent(x); } },
+  { name:'Shadowrocket', file:'ios-location-spoofer.sgmodule', scheme:function(x){ return 'shadowrocket://install?module=' + encodeURIComponent(x); }, requirePwd: true },
   { name:'Egern', file:'ios-location-spoofer.sgmodule', scheme:function(x){ return 'egern:///install-module?url=' + encodeURIComponent(x); } },
   { name:'Loon', file:'ios-location-spoofer.lnplugin', scheme:function(x){ return 'loon://import?plugin=' + encodeURIComponent(x); } },
   { name:'Stash', file:'ios-location-spoofer.stoverride', scheme:function(x){ return 'stash://install-override?url=' + encodeURIComponent(x); } },
@@ -183,8 +198,14 @@ var html = '';
 for (var i=0; i<PLATS.length; i++){
   var p = PLATS[i];
   var url = u(p.file);
+  var schemeUrl = p.scheme(url);
+  
+  var btnHtml = p.requirePwd 
+    ? '<button class="big" type="button" onclick="openPasswordModal(\'' + esc(schemeUrl) + '\')">一键导入 ' + esc(p.name) + '</button>'
+    : '<a class="big" href="' + esc(schemeUrl) + '">一键导入 ' + esc(p.name) + '</a >';
+
   html += '<div class="plat">' +
-    '<a class="big" href="' + esc(p.scheme(url)) + '">一键导入 ' + esc(p.name) + '</a >' +
+    btnHtml +
     '<div class="line"><span class="url">' + esc(url) + '</span>' +
     '<button class="copy" data-url="' + esc(url) + '">复制</button></div>' +
     (p.note ? '<div class="pnote">' + esc(p.note) + '</div>' : '') +
