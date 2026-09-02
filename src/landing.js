@@ -1,4 +1,7 @@
 export function getLandingHtml() {
+  const bgText = encodeURIComponent("小红书独家技术ID1134717149 可乐加糖");
+  const svgWatermark = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='360' height='200'><text x='20' y='100' fill='%23ffffff' font-size='13' transform='rotate(-22, 180, 100)'>${bgText}</text></svg>`;
+
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -31,7 +34,7 @@ body{
   pointer-events:none;
   z-index:0;
   opacity:0.12;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns=\\"http://www.w3.org/2000/svg\\" width=\\"360\\" height=\\"200\\"><text x=\\"20\\" y=\\"100\\" fill=\\"%23ffffff\\" font-size=\\"13\\" transform=\\"rotate(-22, 180, 100)\\">小红书独家技术ID1134717149 可乐加糖</text></svg>");
+  background-image:url("${svgWatermark}");
   background-repeat:repeat;
 }
 .wrap{ position:relative; z-index:1; max-width:600px; margin:0 auto; padding:20px 16px calc(44px + env(safe-area-inset-bottom)); }
