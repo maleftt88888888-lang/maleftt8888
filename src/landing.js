@@ -1,5 +1,5 @@
 export function getLandingHtml() {
-  return `<!DOCTYPE html>
+  const htmlContent = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -65,7 +65,6 @@ h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:li
 .toast{ position:fixed; left:50%; bottom:40px; transform:translateX(-50%) translateY(20px); background:rgba(8,10,14,.92); color:#fff; padding:11px 20px; border-radius:22px; font-size:14px; opacity:0; transition:all .25s; pointer-events:none; z-index:99; border:1px solid var(--line); }
 .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
-/* 暗黑风格密码弹窗 */
 .modal-mask{ position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:100; }
 .modal-box{ background:var(--card); border:1px solid var(--line); border-radius:16px; width:88%; max-width:340px; padding:22px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.5); }
 .modal-box h3{ font-size:17px; font-weight:800; margin-bottom:6px; color:var(--txt); }
@@ -118,7 +117,6 @@ footer b{ color:#8fe0e6; }
   </footer>
 </div>
 
-<!-- 密码弹窗 -->
 <div class="modal-mask" id="pwdModal">
   <div class="modal-box">
     <h3>🔒 身份验证</h3>
@@ -134,7 +132,6 @@ footer b{ color:#8fe0e6; }
 <div class="toast" id="toast"></div>
 
 <script>
-// ⚙️ 修改这里的密码，默认 123456
 const ACCESS_PASSWORD = "123456"; 
 
 function openPasswordModal() {
@@ -199,4 +196,5 @@ for (var j=0; j<btns.length; j++){ (function(b){ b.addEventListener('click', fun
 </script>
 </body>
 </html>`;
+  return htmlContent;
 }
