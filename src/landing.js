@@ -27,14 +27,12 @@ body{
 }
 .wrap{ max-width:600px; margin:0 auto; padding:20px 16px calc(44px + env(safe-area-inset-bottom)); }
 
-/* --- header / branding --- */
 header{ text-align:center; padding:8px 0 6px; }
 header .logowrap{ position:relative; width:74px; margin:0 auto 14px; }
 header .logo{ width:74px; height:74px; border-radius:20px; display:block; box-shadow:0 0 0 1px var(--line),0 10px 30px rgba(23,195,207,.28); }
 h1{ font-size:23px; font-weight:800; letter-spacing:.3px; background:linear-gradient(92deg,#eafcff,#7fe3ea 55%,#22c55e); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
 .synced{ font-size:12px; color:#22c55e; font-weight:700; margin-top:8px; }
 
-/* --- primary CTAs --- */
 .ctas{ display:flex; gap:10px; margin:18px 0 4px; }
 .enter{ flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:17px 14px; border:none; border-radius:14px; font-size:16px; font-weight:800; cursor:pointer; text-decoration:none; transition:transform .12s,box-shadow .12s; }
 .enter:active{ transform:scale(.97); }
@@ -42,14 +40,12 @@ h1{ font-size:23px; font-weight:800; letter-spacing:.3px; background:linear-grad
 
 .divider{ height:1px; background:linear-gradient(90deg,transparent,var(--line),transparent); margin:24px 0 20px; }
 
-/* --- section heads --- */
 h2{ font-size:16px; font-weight:800; margin-bottom:4px; display:flex; align-items:center; gap:9px; }
 h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:linear-gradient(180deg,var(--cyan),var(--green)); }
 .sub{ font-size:12.5px; color:var(--muted); margin:0 0 14px 13px; }
 .note{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--cyan); border-radius:11px; padding:12px 14px; font-size:12.5px; color:#c3ccdb; margin-bottom:16px; }
 .note b{ color:var(--txt); }
 
-/* --- platform cards --- */
 .plat{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:12px; }
 .plat .big{ display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px; border:none; border-radius:11px; background:linear-gradient(135deg,var(--cyan),var(--cyan2)); color:#022a2d; font-size:15.5px; font-weight:800; cursor:pointer; text-align:center; text-decoration:none; transition:filter .12s,transform .12s; }
 .plat .big:active{ filter:brightness(1.1); transform:scale(.98); }
@@ -60,7 +56,6 @@ h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:li
 .plat .copy.ok{ background:var(--green); border-color:var(--green); color:#04240f; }
 .plat .pnote{ font-size:11.5px; color:var(--muted); margin-top:7px; line-height:1.6; }
 
-/* --- info boxes --- */
 .mitm{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 15px; font-size:12.5px; color:#c3ccdb; margin-top:16px; }
 .mitm b{ color:var(--txt); }
 .mitm code{ display:inline-block; font-family:"SF Mono",ui-monospace,monospace; font-size:11.5px; color:var(--mono); word-break:break-all; line-height:2; }
@@ -70,8 +65,8 @@ h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:li
 .toast{ position:fixed; left:50%; bottom:40px; transform:translateX(-50%) translateY(20px); background:rgba(8,10,14,.92); color:#fff; padding:11px 20px; border-radius:22px; font-size:14px; opacity:0; transition:all .25s; pointer-events:none; z-index:99; border:1px solid var(--line); }
 .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
-/* --- 自定义密码弹窗样式 --- */
-.modal-mask{ position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(5px); display:none; align-items:center; justify-content:center; z-index:100; }
+/* 暗黑风格密码弹窗 */
+.modal-mask{ position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:100; }
 .modal-box{ background:var(--card); border:1px solid var(--line); border-radius:16px; width:88%; max-width:340px; padding:22px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.5); }
 .modal-box h3{ font-size:17px; font-weight:800; margin-bottom:6px; color:var(--txt); }
 .modal-box p{ font-size:12.5px; color:var(--muted); margin-bottom:16px; }
@@ -89,7 +84,7 @@ footer b{ color:#8fe0e6; }
 <body>
 <div class="wrap">
   <header>
-    <div class="logowrap">< img class="logo" src="/icon.svg" alt=""></div>
+    <div class="logowrap">< img class="logo" src="/icon.svg" alt="logo"></div>
     <h1>iOS Location Spoofer · 虚拟定位</h1>
     <p class="synced">✅ 已同步上游：随机扰动半径 · 港澳台/百度坐标解析</p >
   </header>
@@ -123,7 +118,7 @@ footer b{ color:#8fe0e6; }
   </footer>
 </div>
 
-<!-- 密码校验对话框 -->
+<!-- 密码弹窗 -->
 <div class="modal-mask" id="pwdModal">
   <div class="modal-box">
     <h3>🔒 身份验证</h3>
@@ -139,7 +134,7 @@ footer b{ color:#8fe0e6; }
 <div class="toast" id="toast"></div>
 
 <script>
-// ⚙️ 在这里设置访问密码（默认：123456）
+// ⚙️ 修改这里的密码，默认 123456
 const ACCESS_PASSWORD = "123456"; 
 
 function openPasswordModal() {
@@ -161,7 +156,6 @@ function submitPassword() {
   }
 }
 
-// 支持按回车键直接提交密码
 document.getElementById('pwdInput').addEventListener('keyup', function(e) {
   if (e.key === 'Enter') submitPassword();
 });
