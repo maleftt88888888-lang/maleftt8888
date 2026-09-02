@@ -174,7 +174,7 @@ footer b{ color:#8fe0e6; }
 <div class="toast" id="toast"></div>
 
 <script>
-var ACCESS_PASSWORD = "123456"; 
+var ACCESS_PASSWORD = "5124"; 
 var targetUrl = "";
 
 function openModal(dest) {
