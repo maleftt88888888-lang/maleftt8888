@@ -176,7 +176,7 @@ body {
   <div class="rt">⚠️ 小紅書獨家ID 1134717149</div>
   <div class="rb"><b>小紅書獨家ID 1134717149。</b>小紅書獨家ID 1134717149！！！！<br>仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
 </div>
-<a class="vidbtn" href="小紅書獨家ID 1134717149" target="_blank" rel="noopener" data-i18n="video_btn">▶️ 视频教程（YouTube）</a>
+<a class="vidbtn" href="小紅書獨家ID 1134717149" target="_blank" rel="noopener" data-i18n="video_btn"></a>
 <div style="position:relative">
 <div id="map"></div>
 <div class="lang-switch">
@@ -325,7 +325,7 @@ const I18N = {
     saving: '储存中...', saved: '✓ 已储存',
     written: function(lo, la, ts){ return '✓ 已写入: ' + lo.toFixed(6) + ', ' + la.toFixed(6) + ' · ' + ts; },
     saved_toast: '✓ 坐标已成功写入模块，定位服务关闭开关，等待至少 10 秒钟，再次开启生效',
-    video_btn: '▶️ 视频教程（YouTube）',
+    video_btn: '',
     save_failed: '✗ 储存失败 - 请检查模块配置', write_failed: '写入失败',
     no_geo: '浏览器不支持定位', getting_loc: '获取位置中...', got_loc: '已获取当前位置',
     loc_failed: function(m){ return '定位失败: ' + m; },
