@@ -41,7 +41,7 @@ header .logo{ width:74px; height:74px; border-radius:20px; display:block; box-sh
 h1{ font-size:23px; font-weight:800; letter-spacing:.3px; background:linear-gradient(92deg,#eafcff,#7fe3ea 55%,#22c55e); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
 .synced{ font-size:12px; color:#22c55e; font-weight:700; margin-top:8px; }
 
-/* --- primary CTAs (green picker + video) --- */
+/* --- primary CTAs --- */
 .ctas{ display:flex; gap:10px; margin:18px 0 4px; }
 .enter{ flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:17px 14px; border:none; border-radius:14px; font-size:16px; font-weight:800; cursor:pointer; text-decoration:none; transition:transform .12s,box-shadow .12s; }
 .enter:active{ transform:scale(.97); }
@@ -49,7 +49,7 @@ h1{ font-size:23px; font-weight:800; letter-spacing:.3px; background:linear-grad
 
 .divider{ height:1px; background:linear-gradient(90deg,transparent,var(--line),transparent); margin:24px 0 20px; }
 
-/* --- section heads with accent bar --- */
+/* --- section heads --- */
 h2{ font-size:16px; font-weight:800; margin-bottom:4px; display:flex; align-items:center; gap:9px; }
 h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:linear-gradient(180deg,var(--cyan),var(--green)); }
 .sub{ font-size:12.5px; color:var(--muted); margin:0 0 14px 13px; }
@@ -76,6 +76,19 @@ h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:li
 
 .toast{ position:fixed; left:50%; bottom:40px; transform:translateX(-50%) translateY(20px); background:rgba(8,10,14,.92); color:#fff; padding:11px 20px; border-radius:22px; font-size:14px; opacity:0; transition:all .25s; pointer-events:none; z-index:99; border:1px solid var(--line); }
 .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* --- 自定义密码弹窗样式 --- */
+.modal-mask{ position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(5px); display:none; align-items:center; justify-content:center; z-index:100; }
+.modal-box{ background:var(--card); border:1px solid var(--line); border-radius:16px; width:88%; max-width:340px; padding:22px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+.modal-box h3{ font-size:17px; font-weight:800; margin-bottom:6px; color:var(--txt); }
+.modal-box p{ font-size:12.5px; color:var(--muted); margin-bottom:16px; }
+.modal-box input{ width:100%; padding:12px; background:var(--bg); border:1px solid var(--line); border-radius:10px; color:var(--txt); font-size:15px; text-align:center; outline:none; margin-bottom:16px; }
+.modal-box input:focus{ border-color:var(--cyan); }
+.modal-btns{ display:flex; gap:10px; }
+.modal-btn{ flex:1; padding:12px; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; }
+.modal-btn.cancel{ background:var(--card2); color:var(--muted); border:1px solid var(--line); }
+.modal-btn.confirm{ background:linear-gradient(135deg,var(--cyan),var(--cyan2)); color:#022a2d; }
+
 footer{ text-align:center; font-size:11.5px; color:var(--muted); margin-top:26px; line-height:1.9; }
 footer b{ color:#8fe0e6; }
 </style>
@@ -89,7 +102,7 @@ footer b{ color:#8fe0e6; }
   </header>
 
   <div class="ctas">
-    <a class="enter go" href=" " onclick="checkPickerPassword()">🗺️ 进入选点网页</a >
+    <a class="enter go" href=" " onclick="openPasswordModal()">🗺️ 进入选点网页</a >
   </div>
 
   <div class="divider"></div>
@@ -117,19 +130,48 @@ footer b{ color:#8fe0e6; }
   </footer>
 </div>
 
+<!-- 密码校验对话框 -->
+<div class="modal-mask" id="pwdModal">
+  <div class="modal-box">
+    <h3>🔒 身份验证</h3>
+    <p>请输入选点页面访问密码</p >
+    <input type="password" id="pwdInput" placeholder="请输入密码" autocomplete="off">
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closePasswordModal()">取消</button>
+      <button class="modal-btn confirm" onclick="submitPassword()">确认进入</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
-// ⚙️ 在这里设置进入选点页面的密码（默认设为 123456）
-function checkPickerPassword() {
-  const PASSWORD = "123456"; 
-  const inputPwd = prompt("请输入选点网页访问密码：");
-  if (inputPwd === PASSWORD) {
+// ⚙️ 在这里设置访问密码（默认：123456）
+const ACCESS_PASSWORD = "123456"; 
+
+function openPasswordModal() {
+  document.getElementById('pwdModal').style.display = 'flex';
+  document.getElementById('pwdInput').value = '';
+  document.getElementById('pwdInput').focus();
+}
+
+function closePasswordModal() {
+  document.getElementById('pwdModal').style.display = 'none';
+}
+
+function submitPassword() {
+  const val = document.getElementById('pwdInput').value;
+  if (val === ACCESS_PASSWORD) {
     window.location.href = "/picker";
-  } else if (inputPwd !== null) {
-    alert("密码错误，无法进入！");
+  } else {
+    toast("密码错误，无法进入！");
   }
 }
+
+// 支持按回车键直接提交密码
+document.getElementById('pwdInput').addEventListener('keyup', function(e) {
+  if (e.key === 'Enter') submitPassword();
+});
 
 var origin = location.origin;
 function u(file){ return origin + '/' + file; }
