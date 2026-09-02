@@ -31,7 +31,7 @@ body{
   pointer-events:none;
   z-index:0;
   opacity:0.12;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='360' height='200'><text x='20' y='100' fill='%23ffffff' font-size='13' font-family='sans-serif' transform='rotate(-22, 180, 100)'>小红书独家技术ID1134717149 可乐加糖</text></svg>");
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns=\\"http://www.w3.org/2000/svg\\" width=\\"360\\" height=\\"200\\"><text x=\\"20\\" y=\\"100\\" fill=\\"%23ffffff\\" font-size=\\"13\\" transform=\\"rotate(-22, 180, 100)\\">小红书独家技术ID1134717149 可乐加糖</text></svg>");
   background-repeat:repeat;
 }
 .wrap{ position:relative; z-index:1; max-width:600px; margin:0 auto; padding:20px 16px calc(44px + env(safe-area-inset-bottom)); }
@@ -93,7 +93,7 @@ footer b{ color:#8fe0e6; }
 <div class="watermark"></div>
 <div class="wrap">
   <header>
-    <div class="logowrap">< img class="logo" src="/icon.svg" alt="logo"></div>
+    <div class="logowrap"><img class="logo" src="/icon.svg" alt="logo"></div>
     <h1>小红书ID 1134717149 🌏号LLME-love  ·可乐加糖 虚拟定位</h1>
     <p class="synced">✅ 已同步上游：随机扰动半径 · 港澳台/百度坐标解析</p >
   </header>
