@@ -169,7 +169,7 @@ body {
 <body>
 <div class="topbar">
   <a class="back" href="/">← 主页</a>
-  <span class="topcredit">📺 <a class="ytname" href="小紅書獨家ID 1134717149" target="_blank" rel="noopener">YouTube CyberHandyman 小紅書獨家ID 1134717149</a><span class="forkline"> · fork from 鸣谢贡献者: Yu9191 / mekos2772 / acheong08 <span class="v11">· 已同步 Yu9191 v1.1</span></span></span>
+  <span class="topcredit">📺 <a class="ytname" href="小紅書獨家ID 1134717149" target="_blank" rel="noopener">YouTube CyberHandyman 小紅書獨家ID 1134717149</a><span class="forkline"> · fork from 鸣谢贡献者: Yu9191 / mekos2772 / acheong08 <span class="v11">· </span></span></span>
   <a class="tg" href="https://t.me/cyberhandymancngroup" target="_blank" rel="noopener">✈️ TG群</a>
 </div>
 <div class="redbox">
