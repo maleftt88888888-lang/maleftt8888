@@ -27,13 +27,6 @@ body{
 }
 .wrap{ max-width:600px; margin:0 auto; padding:20px 16px calc(44px + env(safe-area-inset-bottom)); }
 
-/* --- disclaimer --- */
-.disc{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 16px; margin-bottom:18px; }
-.disc-t{ font-size:13px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:var(--cyan); margin-bottom:9px; }
-.disc-list{ margin:0; padding-left:17px; }
-.disc-list li{ font-size:12px; color:var(--muted); line-height:1.75; margin-bottom:6px; }
-.disc-list li b{ color:#c3ccdb; }
-
 /* --- header / branding --- */
 header{ text-align:center; padding:8px 0 6px; }
 header .logowrap{ position:relative; width:74px; margin:0 auto 14px; }
@@ -102,7 +95,7 @@ footer b{ color:#8fe0e6; }
   </header>
 
   <div class="ctas">
-    <a class="enter go" href=" " onclick="openPasswordModal()">🗺️ 进入选点网页</a >
+    <button type="button" class="enter go" onclick="openPasswordModal()">🗺️ 进入选点网页</button>
   </div>
 
   <div class="divider"></div>
@@ -137,8 +130,8 @@ footer b{ color:#8fe0e6; }
     <p>请输入选点页面访问密码</p >
     <input type="password" id="pwdInput" placeholder="请输入密码" autocomplete="off">
     <div class="modal-btns">
-      <button class="modal-btn cancel" onclick="closePasswordModal()">取消</button>
-      <button class="modal-btn confirm" onclick="submitPassword()">确认进入</button>
+      <button type="button" class="modal-btn cancel" onclick="closePasswordModal()">取消</button>
+      <button type="button" class="modal-btn confirm" onclick="submitPassword()">确认进入</button>
     </div>
   </div>
 </div>
@@ -152,7 +145,7 @@ const ACCESS_PASSWORD = "123456";
 function openPasswordModal() {
   document.getElementById('pwdModal').style.display = 'flex';
   document.getElementById('pwdInput').value = '';
-  document.getElementById('pwdInput').focus();
+  setTimeout(function(){ document.getElementById('pwdInput').focus(); }, 100);
 }
 
 function closePasswordModal() {
