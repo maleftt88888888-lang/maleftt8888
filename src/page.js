@@ -176,7 +176,6 @@ body {
   <div class="rt">⚠️ 小紅書獨家ID 1134717149</div>
   <div class="rb"><b>小紅書獨家ID 1134717149。</b>小紅書獨家ID 1134717149！！！！<br>仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
 </div>
-<a class="vidbtn" href="小紅書獨家ID 1134717149" target="_blank" rel="noopener" data-i18n="video_btn"></a>
 <div style="position:relative">
 <div id="map"></div>
 <div class="lang-switch">
