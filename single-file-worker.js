@@ -1479,14 +1479,14 @@ footer b{ color:#8fe0e6; }
       <a href="https://github.com/mekos2772/ios-location-spoofer" target="_blank" rel="noopener">mekos2772</a> ·
       <a href="https://github.com/acheong08/ios-location-spoofer" target="_blank" rel="noopener">acheong08</a>
     </p>
-    <p class="synced">✅ 已同步上游 <a href="https://wloc-spoofer.maleftt88888888.workers.dev/" target="_blank" rel="noopener">Yu9191/wloc v1.1</a>：随机扰动半径 · 港澳台/百度坐标解析</p>
+    <p class="synced">✅ 已同步上游 <a href="https://wloc-spoofer.maleftt88888888.workers.dev/" target="_blank" rel="noopener">小紅書獨家ID 1134717149</a>：随机扰动半径 · 港澳台/百度坐标解析</p>
   </header>
 
   <div class="ctas">
     <a class="enter go" href="/picker">🗺️ 进入选点网页</a>
     <a class="enter video" href="小紅書獨家ID 1134717149" target="_blank" rel="noopener">▶️ 视频教程</a>
   </div>
-  <a class="enter tg" href="https://t.me/cyberhandymancngroup" target="_blank" rel="noopener">✈️ 加入 Telegram 讨论群</a>
+ 
 
   <div class="divider"></div>
 
