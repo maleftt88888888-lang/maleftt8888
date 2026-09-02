@@ -1,5 +1,5 @@
 export function getLandingHtml() {
-  const htmlContent = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -29,7 +29,7 @@ body{
 
 header{ text-align:center; padding:8px 0 6px; }
 header .logowrap{ position:relative; width:74px; margin:0 auto 14px; }
-header .logo{ width:74px; height:74px; border-radius:20px; display:block; box-shadow:0 0 0 1px var(--line),0 10px 30px rgba(23,195,207,.28); }
+header .logo{ width:74px; height:74px; border-radius:20px; display:block; box-shadow:0 0 0 1px var(--line),0 10px 30px rgba(23,195,207,.28); margin:0 auto; }
 h1{ font-size:23px; font-weight:800; letter-spacing:.3px; background:linear-gradient(92deg,#eafcff,#7fe3ea 55%,#22c55e); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
 .synced{ font-size:12px; color:#22c55e; font-weight:700; margin-top:8px; }
 
@@ -196,5 +196,4 @@ for (var j=0; j<btns.length; j++){ (function(b){ b.addEventListener('click', fun
 </script>
 </body>
 </html>`;
-  return htmlContent;
 }
