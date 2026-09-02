@@ -106,8 +106,7 @@ footer b{ color:#8fe0e6; }
 
   <h2>安装模块</h2>
   <p class="sub">选你的代理客户端，点「一键导入」直接装；或「复制」手动添加。</p >
-  <div class="note">📍 支持iOS 26+ 切换后可能需重启一次设备清缓存。</div>
-
+  <div class="note" style="font-size: 15px; color: #ff5b60; line-height: 1.6;">📍 支持iOS 26+ 切换后可能需重启一次设备清缓存。</div>
   <!-- 静态 HTML 布局，不依赖 JS 拼接，绝对能显示 -->
   <div id="plats">
     <!-- Surge -->
