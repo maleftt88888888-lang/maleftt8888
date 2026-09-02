@@ -117,7 +117,7 @@ footer b{ color:#8fe0e6; }
   </header>
 
   <div class="ctas">
-    <a class="enter go" href=" " onclick="checkPickerPassword()">🗺️ 进入选点网页</a >
+   <a class="enter go" href=" ">🗺️ 进入选点网页</a >
   
   </div>
 
