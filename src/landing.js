@@ -27,11 +27,6 @@ body{
 }
 .wrap{ max-width:600px; margin:0 auto; padding:20px 16px calc(44px + env(safe-area-inset-bottom)); }
 
-/* --- top warning: red accent bar + tint --- */
-.warn{ position:relative; background:linear-gradient(180deg,rgba(255,91,96,.16),rgba(255,91,96,.06)); border:1px solid rgba(255,91,96,.5); border-left:5px solid var(--red); border-radius:12px; padding:15px 18px; margin-bottom:12px; }
-.warn .t{ color:#ff6b70; font-size:20px; font-weight:800; letter-spacing:.4px; line-height:1.4; }
-.warn .b{ color:#ffdcdc; font-size:15.5px; font-weight:700; line-height:1.7; margin-top:9px; }
-
 /* --- disclaimer --- */
 .disc{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 16px; margin-bottom:18px; }
 .disc-t{ font-size:13px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:var(--cyan); margin-bottom:9px; }
@@ -44,22 +39,13 @@ header{ text-align:center; padding:8px 0 6px; }
 header .logowrap{ position:relative; width:74px; margin:0 auto 14px; }
 header .logo{ width:74px; height:74px; border-radius:20px; display:block; box-shadow:0 0 0 1px var(--line),0 10px 30px rgba(23,195,207,.28); }
 h1{ font-size:23px; font-weight:800; letter-spacing:.3px; background:linear-gradient(92deg,#eafcff,#7fe3ea 55%,#22c55e); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-.ytline{ margin-top:13px; font-size:17.5px; font-weight:800; letter-spacing:.3px; line-height:1.5; }
-.ytline .yt{ color:#ff6b70; text-decoration:none; text-shadow:0 0 18px rgba(255,91,96,.45); }
-.credit{ font-size:12px; color:var(--muted); margin-top:9px; line-height:1.7; }
-.credit a{ color:#8fe0e6; text-decoration:none; }
 .synced{ font-size:12px; color:#22c55e; font-weight:700; margin-top:8px; }
-.synced a{ color:#22c55e; text-decoration:underline; }
 
 /* --- primary CTAs (green picker + video) --- */
 .ctas{ display:flex; gap:10px; margin:18px 0 4px; }
 .enter{ flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:17px 14px; border:none; border-radius:14px; font-size:16px; font-weight:800; cursor:pointer; text-decoration:none; transition:transform .12s,box-shadow .12s; }
 .enter:active{ transform:scale(.97); }
 .enter.go{ background:linear-gradient(135deg,#2ee06a,#129a44); color:#04240f; box-shadow:0 10px 26px rgba(34,197,94,.34); }
-.enter.video{ background:transparent; color:#ff6b70; border:1.5px solid rgba(255,91,96,.6); flex:0 0 44%; }
-.enter.video:active{ background:rgba(255,91,96,.1); }
-.enter.tg{ width:100%; margin:10px 0 4px; background:transparent; color:#5cb8e8; border:1.5px solid rgba(42,171,238,.55); }
-.enter.tg:active{ background:rgba(42,171,238,.12); }
 
 .divider{ height:1px; background:linear-gradient(90deg,transparent,var(--line),transparent); margin:24px 0 20px; }
 
@@ -88,11 +74,6 @@ h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:li
 .mitm .hosts{ margin-top:8px; padding:10px 12px; background:var(--bg); border:1px solid var(--line); border-radius:9px; }
 .mitm .hosts code{ line-height:2.1; }
 
-/* --- tiled diagonal watermark (continuous, self-restoring) --- */
-.wm{ position:fixed; inset:0; z-index:90; pointer-events:none; overflow:hidden; user-select:none; -webkit-user-select:none; }
-.wm-i{ position:absolute; inset:-60%; display:flex; flex-wrap:wrap; align-content:flex-start; transform:rotate(-24deg); opacity:.11; }
-.wm-i span{ flex:none; padding:26px 30px; font-size:17.5px; font-weight:800; white-space:nowrap; color:#8fe0e6; letter-spacing:.4px; }
-
 .toast{ position:fixed; left:50%; bottom:40px; transform:translateX(-50%) translateY(20px); background:rgba(8,10,14,.92); color:#fff; padding:11px 20px; border-radius:22px; font-size:14px; opacity:0; transition:all .25s; pointer-events:none; z-index:99; border:1px solid var(--line); }
 .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 footer{ text-align:center; font-size:11.5px; color:var(--muted); margin-top:26px; line-height:1.9; }
@@ -101,31 +82,20 @@ footer b{ color:#8fe0e6; }
 </head>
 <body>
 <div class="wrap">
-  <div class="warn">
-    <div class="t">⚠️ 小紅書獨家ID 1134717149</div>
-    <div class="b"><b>小紅書獨家ID 1134717149。</b><br>小紅書獨家ID 1134717149</div>
-  </div>
- 
-  </div>
-
   <header>
-    <div class="logowrap"><img class="logo" src="/icon.svg" alt=""></div>
+    <div class="logowrap">< img class="logo" src="/icon.svg" alt=""></div>
     <h1>iOS Location Spoofer · 虚拟定位</h1>
-    
-    </p>
-    <p class="synced">✅ 已同步上游 <a href="https://wloc-spoofer.maleftt88888888.workers.dev/" target="_blank" rel="noopener">小紅書獨家ID 1134717149</a>：随机扰动半径 · 港澳台/百度坐标解析</p>
+    <p class="synced">✅ 已同步上游：随机扰动半径 · 港澳台/百度坐标解析</p >
   </header>
 
   <div class="ctas">
-   <a class="enter go" href="/picker">🗺️ 进入选点网页</a >
-  
+    <a class="enter go" href=" " onclick="checkPickerPassword()">🗺️ 进入选点网页</a >
   </div>
-
 
   <div class="divider"></div>
 
   <h2>安装模块</h2>
-  <p class="sub">选你的代理客户端，点「一键导入」直接装；或「复制」手动添加。</p>
+  <p class="sub">选你的代理客户端，点「一键导入」直接装；或「复制」手动添加。</p >
   <div class="note">📍 生效前提：① 代理 App 已连接（开关/引擎打开、<b>非「直连」模式</b>）；② 开启 HTTPS 解密(MITM) 并信任证书；③ 装好对应客户端的模块。之后打开选点页选位置、点「储存到设备」即可生效。iOS 26+ 切换后可能需重启一次设备清缓存。</div>
 
   <div id="plats"></div>
@@ -146,32 +116,20 @@ footer b{ color:#8fe0e6; }
     GNU AGPL-3.0 · 仅供学习研究
   </footer>
 </div>
-<div class="wm" id="wm" aria-hidden="true"><div class="wm-i" id="wmi"></div></div>
+
 <div class="toast" id="toast"></div>
+
 <script>
-/* ---- Watermark: tiled, non-interactive, rebuilt if tampered with ---- */
-var WM_TEXT = '小紅書獨家技術 id1134717149';
-function buildWM(){
-  var host = document.getElementById('wm');
-  if (!host){ host = document.createElement('div'); host.id = 'wm'; host.className = 'wm'; host.setAttribute('aria-hidden','true'); document.body.appendChild(host); }
-  host.className = 'wm'; host.removeAttribute('style');
-  var n = Math.ceil((window.innerWidth * window.innerHeight) / 12000) + 40;
-  var s = '';
-  for (var i = 0; i < n; i++) s += '<span>' + WM_TEXT + '</span>';
-  host.innerHTML = '<div class="wm-i" id="wmi">' + s + '</div>';
-}
-function ensureWM(){
-  var host = document.getElementById('wm'), inner = document.getElementById('wmi');
-  if (!host || !inner || inner.textContent.indexOf('CyberHandyman') < 0) { buildWM(); return; }
-  var ch = getComputedStyle(host), ci = getComputedStyle(inner);
-  if (ch.display === 'none' || ch.visibility === 'hidden' || ch.position !== 'fixed' || parseFloat(ci.opacity) < 0.03) {
-    host.removeAttribute('style'); inner.removeAttribute('style'); buildWM();
+// ⚙️ 在这里设置进入选点页面的密码（默认设为 123456）
+function checkPickerPassword() {
+  const PASSWORD = "123456"; 
+  const inputPwd = prompt("请输入选点网页访问密码：");
+  if (inputPwd === PASSWORD) {
+    window.location.href = "/picker";
+  } else if (inputPwd !== null) {
+    alert("密码错误，无法进入！");
   }
 }
-buildWM();
-try { new MutationObserver(ensureWM).observe(document.body, { childList:true }); } catch(e) {}
-setInterval(ensureWM, 1500);
-window.addEventListener('resize', buildWM);
 
 var origin = location.origin;
 function u(file){ return origin + '/' + file; }
@@ -200,7 +158,7 @@ for (var i=0; i<PLATS.length; i++){
   var p = PLATS[i];
   var url = u(p.file);
   html += '<div class="plat">' +
-    '<a class="big" href="' + esc(p.scheme(url)) + '">一键导入 ' + esc(p.name) + '</a>' +
+    '<a class="big" href="' + esc(p.scheme(url)) + '">一键导入 ' + esc(p.name) + '</a >' +
     '<div class="line"><span class="url">' + esc(url) + '</span>' +
     '<button class="copy" data-url="' + esc(url) + '">复制</button></div>' +
     (p.note ? '<div class="pnote">' + esc(p.note) + '</div>' : '') +
@@ -209,7 +167,7 @@ for (var i=0; i<PLATS.length; i++){
 document.getElementById('plats').innerHTML = html;
 var btns = document.querySelectorAll('.copy');
 for (var j=0; j<btns.length; j++){ (function(b){ b.addEventListener('click', function(){ doCopy(b.getAttribute('data-url'), b); }); })(btns[j]); }
-<\/script>
+</script>
 </body>
 </html>`;
 }
