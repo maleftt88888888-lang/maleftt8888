@@ -117,7 +117,7 @@ footer b{ color:#8fe0e6; }
   </header>
 
   <div class="ctas">
-   <a class="enter go" href=" ">🗺️ 进入选点网页</a >
+   <a class="enter go" href="/picker">🗺️ 进入选点网页</a >
   
   </div>
 
@@ -208,6 +208,7 @@ for (var i=0; i<PLATS.length; i++){
 }
 document.getElementById('plats').innerHTML = html;
 var btns = document.querySelectorAll('.copy');
+for (var j=0; j<btns.length; j++){ (function(b){ b.addEventListener('click', function(){ doCopy(b.getAttribute('data-url'), b); }); })(btns[j]); }
 <\/script>
 </body>
 </html>`;
