@@ -1,7 +1,4 @@
 export function getLandingHtml() {
-  const bgText = encodeURIComponent("小红书独家技术ID1134717149 可乐加糖");
-  const svgWatermark = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='360' height='200'><text x='20' y='100' fill='%23ffffff' font-size='13' transform='rotate(-22, 180, 100)'>${bgText}</text></svg>`;
-
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -34,7 +31,7 @@ body{
   pointer-events:none;
   z-index:0;
   opacity:0.12;
-  background-image:url("${svgWatermark}");
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='360' height='200'><text x='20' y='100' fill='%23ffffff' font-size='13' transform='rotate(-22, 180, 100)'>小红书独家技术ID1134717149 可乐加糖</text></svg>");
   background-repeat:repeat;
 }
 .wrap{ position:relative; z-index:1; max-width:600px; margin:0 auto; padding:20px 16px calc(44px + env(safe-area-inset-bottom)); }
@@ -102,7 +99,7 @@ footer b{ color:#8fe0e6; }
   </header>
 
   <div class="ctas">
-    <button type="button" class="enter go" onclick="openPasswordModal('/picker')">🗺️ 进入选点网页</button>
+    <button type="button" class="enter go" onclick="openModal('/picker')">🗺️ 进入选点网页</button>
   </div>
 
   <div class="divider"></div>
@@ -111,7 +108,40 @@ footer b{ color:#8fe0e6; }
   <p class="sub">选你的代理客户端，点「一键导入」直接装；或「复制」手动添加。</p >
   <div class="note">📍 生效前提：① 代理 App 已连接（开关/引擎打开、<b>非「直连」模式</b>）；② 开启 HTTPS 解密(MITM) 并信任证书；③ 装好对应客户端的模块。之后打开选点页选位置、点「储存到设备」即可生效。iOS 26+ 切换后可能需重启一次设备清缓存。</div>
 
-  <div id="plats"></div>
+  <!-- 静态 HTML 布局，不依赖 JS 拼接，绝对能显示 -->
+  <div id="plats">
+    <!-- Surge -->
+    <div class="plat">
+      <a class="big" id="btn-surge" href=" ">一键导入 Surge</a >
+      <div class="line"><span class="url" id="url-surge"></span><button class="copy" onclick="doCopy('ios-location-spoofer.sgmodule', this)">复制</button></div>
+    </div>
+    <!-- Shadowrocket（加密码验证） -->
+    <div class="plat">
+      <button class="big" type="button" onclick="openShadowrocket()">一键导入 Shadowrocket</button>
+      <div class="line"><span class="url" id="url-sr"></span><button class="copy" onclick="doCopy('ios-location-spoofer.sgmodule', this)">复制</button></div>
+    </div>
+    <!-- Egern -->
+    <div class="plat">
+      <a class="big" id="btn-egern" href="#">一键导入 Egern</a >
+      <div class="line"><span class="url" id="url-egern"></span><button class="copy" onclick="doCopy('ios-location-spoofer.sgmodule', this)">复制</button></div>
+    </div>
+    <!-- Loon -->
+    <div class="plat">
+      <a class="big" id="btn-loon" href="#">一键导入 Loon</a >
+      <div class="line"><span class="url" id="url-loon"></span><button class="copy" onclick="doCopy('ios-location-spoofer.lnplugin', this)">复制</button></div>
+    </div>
+    <!-- Stash -->
+    <div class="plat">
+      <a class="big" id="btn-stash" href="#">一键导入 Stash</a >
+      <div class="line"><span class="url" id="url-stash"></span><button class="copy" onclick="doCopy('ios-location-spoofer.stoverride', this)">复制</button></div>
+    </div>
+    <!-- Quantumult X -->
+    <div class="plat">
+      <a class="big" id="btn-qx" href="#">一键导入 Quantumult X</a >
+      <div class="line"><span class="url" id="url-qx"></span><button class="copy" onclick="doCopy('ios-location-spoofer.snippet', this)">复制</button></div>
+      <div class="pnote">QX 没有模块面板：一键导入=添加「重写」资源(需已配资源解析器)；MITM 主机名要手动加进 设置→MITM。</div>
+    </div>
+  </div>
 
   <div class="mitm">
     <b>Quantumult X 资源解析器 URL（QX 一键导入 / 重写引用需先配好）：</b><br>
@@ -136,7 +166,7 @@ footer b{ color:#8fe0e6; }
     <p>请输入访问密码</p >
     <input type="password" id="pwdInput" placeholder="请输入密码" autocomplete="off">
     <div class="modal-btns">
-      <button type="button" class="modal-btn cancel" onclick="closePasswordModal()">取消</button>
+      <button type="button" class="modal-btn cancel" onclick="closeModal()">取消</button>
       <button type="button" class="modal-btn confirm" onclick="submitPassword()">确认进入</button>
     </div>
   </div>
@@ -145,78 +175,98 @@ footer b{ color:#8fe0e6; }
 <div class="toast" id="toast"></div>
 
 <script>
-const ACCESS_PASSWORD = "123456"; 
-var targetRedirectUrl = "";
+var ACCESS_PASSWORD = "123456"; 
+var targetUrl = "";
 
-function openPasswordModal(targetUrl) {
-  targetRedirectUrl = targetUrl || "/picker";
+function openModal(dest) {
+  targetUrl = dest;
   document.getElementById('pwdModal').style.display = 'flex';
   document.getElementById('pwdInput').value = '';
   setTimeout(function(){ document.getElementById('pwdInput').focus(); }, 100);
 }
 
-function closePasswordModal() {
+function closeModal() {
   document.getElementById('pwdModal').style.display = 'none';
-  targetRedirectUrl = "";
+  targetUrl = "";
 }
 
 function submitPassword() {
-  const val = document.getElementById('pwdInput').value;
+  var val = document.getElementById('pwdInput').value;
   if (val === ACCESS_PASSWORD) {
-    var dest = targetRedirectUrl || "/picker";
-    closePasswordModal();
+    var dest = targetUrl || "/picker";
+    closeModal();
     window.location.href = dest;
   } else {
     toast("密码错误，无法操作！");
   }
 }
 
+function openShadowrocket() {
+  var origin = location.origin;
+  var moduleUrl = origin + '/ios-location-spoofer.sgmodule';
+  var scheme = 'shadowrocket://install?module=' + encodeURIComponent(moduleUrl);
+  openModal(scheme);
+}
+
 document.getElementById('pwdInput').addEventListener('keyup', function(e) {
   if (e.key === 'Enter') submitPassword();
 });
 
-var origin = location.origin;
-function u(file){ return origin + '/' + file; }
-var qxExtra = ', tag=iOS Location Spoofer, update-interval=172800, opt-parser=true, enabled=true';
-var PLATS = [
-  { name:'Surge', file:'ios-location-spoofer.sgmodule', scheme:function(x){ return 'surge:///install-module?url=' + encodeURIComponent(x); } },
-  { name:'Shadowrocket', file:'ios-location-spoofer.sgmodule', scheme:function(x){ return 'shadowrocket://install?module=' + encodeURIComponent(x); }, requirePwd: true },
-  { name:'Egern', file:'ios-location-spoofer.sgmodule', scheme:function(x){ return 'egern:///install-module?url=' + encodeURIComponent(x); } },
-  { name:'Loon', file:'ios-location-spoofer.lnplugin', scheme:function(x){ return 'loon://import?plugin=' + encodeURIComponent(x); } },
-  { name:'Stash', file:'ios-location-spoofer.stoverride', scheme:function(x){ return 'stash://install-override?url=' + encodeURIComponent(x); } },
-  { name:'Quantumult X', file:'ios-location-spoofer.snippet',
-    scheme:function(x){ return 'quantumult-x:///add-resource?remote-resource=' + encodeURIComponent(JSON.stringify({ rewrite_remote:[x + qxExtra] })); },
-    note:'QX 没有模块面板：一键导入=添加「重写」资源(需已配资源解析器)；MITM 主机名要手动加进 设置→MITM。' }
-];
+function toast(m){ 
+  var t=document.getElementById('toast'); 
+  t.textContent=m; 
+  t.classList.add('show'); 
+  setTimeout(function(){ t.classList.remove('show'); }, 1800); 
+}
 
-function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); }, 1800); }
 function copyText(s){
   if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(s);
-  return new Promise(function(res,rej){ try{ var ta=document.createElement('textarea'); ta.value=s; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); var ok=document.execCommand('copy'); document.body.removeChild(ta); ok?res():rej(); }catch(e){ rej(e); } });
+  return new Promise(function(res,rej){ 
+    try{ 
+      var ta=document.createElement('textarea'); 
+      ta.value=s; ta.style.position='fixed'; ta.style.opacity='0'; 
+      document.body.appendChild(ta); ta.select(); 
+      var ok=document.execCommand('copy'); 
+      document.body.removeChild(ta); 
+      ok?res():rej(); 
+    }catch(e){ rej(e); } 
+  });
 }
-function doCopy(s, btn){ copyText(s).then(function(){ toast('已复制模块链接'); var o=btn.textContent; btn.classList.add('ok'); btn.textContent='✓'; setTimeout(function(){ btn.textContent=o; btn.classList.remove('ok'); }, 1200); }).catch(function(){ toast('复制失败，请手动选择'); }); }
 
-var html = '';
-for (var i=0; i<PLATS.length; i++){
-  var p = PLATS[i];
-  var url = u(p.file);
-  var schemeUrl = p.scheme(url);
+function doCopy(file, btn){ 
+  var fullUrl = location.origin + '/' + file;
+  copyText(fullUrl).then(function(){ 
+    toast('已复制模块链接'); 
+    var o=btn.textContent; 
+    btn.classList.add('ok'); 
+    btn.textContent='✓'; 
+    setTimeout(function(){ btn.textContent=o; btn.classList.remove('ok'); }, 1200); 
+  }).catch(function(){ toast('复制失败，请手动选择'); }); 
+}
+
+// 自动填入按钮的相对跳转链接
+window.onload = function() {
+  var origin = location.origin;
+  var sgUrl = origin + '/ios-location-spoofer.sgmodule';
+  var lnUrl = origin + '/ios-location-spoofer.lnplugin';
+  var stUrl = origin + '/ios-location-spoofer.stoverride';
+  var snUrl = origin + '/ios-location-spoofer.snippet';
+
+  document.getElementById('url-surge').textContent = sgUrl;
+  document.getElementById('url-sr').textContent = sgUrl;
+  document.getElementById('url-egern').textContent = sgUrl;
+  document.getElementById('url-loon').textContent = lnUrl;
+  document.getElementById('url-stash').textContent = stUrl;
+  document.getElementById('url-qx').textContent = snUrl;
+
+  document.getElementById('btn-surge').href = 'surge:///install-module?url=' + encodeURIComponent(sgUrl);
+  document.getElementById('btn-egern').href = 'egern:///install-module?url=' + encodeURIComponent(sgUrl);
+  document.getElementById('btn-loon').href = 'loon://import?plugin=' + encodeURIComponent(lnUrl);
+  document.getElementById('btn-stash').href = 'stash://install-override?url=' + encodeURIComponent(stUrl);
   
-  var btnHtml = p.requirePwd 
-    ? '<button class="big" type="button" onclick="openPasswordModal(\'' + esc(schemeUrl) + '\')">一键导入 ' + esc(p.name) + '</button>'
-    : '<a class="big" href="' + esc(schemeUrl) + '">一键导入 ' + esc(p.name) + '</a >';
-
-  html += '<div class="plat">' +
-    btnHtml +
-    '<div class="line"><span class="url">' + esc(url) + '</span>' +
-    '<button class="copy" data-url="' + esc(url) + '">复制</button></div>' +
-    (p.note ? '<div class="pnote">' + esc(p.note) + '</div>' : '') +
-    '</div>';
-}
-document.getElementById('plats').innerHTML = html;
-var btns = document.querySelectorAll('.copy');
-for (var j=0; j<btns.length; j++){ (function(b){ b.addEventListener('click', function(){ doCopy(b.getAttribute('data-url'), b); }); })(btns[j]); }
+  var qxExtra = ', tag=iOS Location Spoofer, update-interval=172800, opt-parser=true, enabled=true';
+  document.getElementById('btn-qx').href = 'quantumult-x:///add-resource?remote-resource=' + encodeURIComponent(JSON.stringify({ rewrite_remote:[snUrl + qxExtra] }));
+};
 </script>
 </body>
 </html>`;
