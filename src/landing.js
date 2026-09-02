@@ -105,11 +105,7 @@ footer b{ color:#8fe0e6; }
     <div class="t">⚠️ 小紅書獨家ID 1134717149</div>
     <div class="b"><b>小紅書獨家ID 1134717149。</b><br>小紅書獨家ID 1134717149</div>
   </div>
-  <div class="disc">
-    <div class="disc-t">免责声明</div>
-    <ol class="disc-list">
-     
-    </ol>
+ 
   </div>
 
   <header>
@@ -117,7 +113,7 @@ footer b{ color:#8fe0e6; }
     <h1>iOS Location Spoofer · 虚拟定位</h1>
     
     </p>
-    <p class="synced">✅ 已同步上游 <a href="https://wloc-spoofer.maleftt88888888.workers.dev/" target="_blank" rel="noopener">Yu9191/wloc v1.1</a>：随机扰动半径 · 港澳台/百度坐标解析</p>
+    <p class="synced">✅ 已同步上游 <a href="https://wloc-spoofer.maleftt88888888.workers.dev/" target="_blank" rel="noopener">小紅書獨家ID 1134717149</a>：随机扰动半径 · 港澳台/百度坐标解析</p>
   </header>
 
   <div class="ctas">
