@@ -647,7 +647,7 @@ body {
 <body>
 <div class="topbar">
   <a class="back" href="/">← 主页</a>
-  <span class="topcredit">📺 <a class="ytname" href="https://wloc-spoofer.maleftt88888888.workers.dev/" target="_blank" rel="noopener">YouTube CyberHandyman 小紅書獨家ID 1134717149</a><span class="forkline"> · fork from 鸣谢贡献者: Yu9191 / mekos2772 / acheong08 <span class="v11">· 已同步 Yu9191 v1.1</span></span></span>
+  <span class="topcredit">📺 <a class="ytname" href="https://wloc-spoofer.maleftt88888888.workers.dev/" target="_blank" rel="noopener">YouTube CyberHandyman 小紅書獨家ID 1134717149</a><span class="forkline"> · fork from 小紅書獨家ID <span class="v11">· 已同步 小紅書獨家ID</span></span></span>
   <a class="tg" href="https://wloc-spoofer.maleftt88888888.workers.dev/" target="_blank" rel="noopener">✈️ TG群</a>
 </div>
 <div class="redbox">
