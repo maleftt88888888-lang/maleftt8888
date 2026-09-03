@@ -211,10 +211,7 @@ export default {
     const country = request && request.cf && request.cf.country;
     let pathname = "/";
     try { pathname = new URL(request.url).pathname; } catch (e) {}
-    // Telegram's webhook POST is a server-to-server call (non-CN anyway) — never geo-block /tg.
-    if (country === "CN" && pathname !== "/tg") {
-      return new Response(BLOCK_HTML, { status: 403, headers: { "Content-Type": "text/html;charset=utf-8", "Cache-Control": "no-store" } });
-    }
+
     // Lightweight access log — stream it live with `wrangler tail` to spot resale / abuse.
     // (No IP logged; edge-cached static fetches won't appear here, but page loads will.)
     try {
