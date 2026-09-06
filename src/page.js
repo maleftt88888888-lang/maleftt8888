@@ -806,21 +806,20 @@ async function searchPlace() {
   const box = document.getElementById('searchResults');
   box.innerHTML = '<div class="search-item">' + escHtml(t('searching')) + '<\/div>';
   
-  const AMAP_KEY = '	caa188605b82ff16a8bf28eb707eeba6'; 
+  const AMAP_KEY = 'caa188605bf2ff16a8bf28eb707eeba6'; 
 
   try {
     const r = await fetch('https://restapi.amap.com/v3/place/text?keywords=' + encodeURIComponent(q) + '&key=' + AMAP_KEY);
-
     const data = await r.json();
     
     if (data.status === '1' && data.pois && data.pois.length > 0) {
-      searchResults = data.pois.map(p => {
-        const [lng, lat] = p.location.split(',');
-        const addr = `${p.pname||''}${p.cityname||''}${p.adname||''}${p.address||''}`;
+      searchResults = data.pois.map(function(p) {
+        var loc = p.location.split(',');
+        var addr = (p.pname||'') + (p.cityname||'') + (p.adname||'') + (p.address||'');
         return {
-          display_name: addr ? `${p.name} (${addr})` : p.name,
-          lat: lat,
-          lon: lng
+          display_name: addr ? (p.name + ' (' + addr + ')') : p.name,
+          lat: loc[1],
+          lon: loc[0]
         };
       });
       
@@ -835,6 +834,11 @@ async function searchPlace() {
       toast(t('not_found', q), 3000);
     }
   } catch(e) { 
+    box.innerHTML = ''; 
+    toast(t('search_failed'), 3000); 
+  }
+}
+
     box.innerHTML = ''; 
     toast(t('search_failed'), 3000); 
   }
