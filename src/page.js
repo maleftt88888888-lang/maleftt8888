@@ -809,7 +809,8 @@ async function searchPlace() {
   const AMAP_KEY = '	caa188605b82ff16a8bf28eb707eeba6'; 
 
   try {
-    const r = await fetch(`https://restapi.amap.com/v3/place/text?keywords=${encodeURIComponent(q)}&key=${AMAP_KEY}`);
+    const r = await fetch('https://restapi.amap.com/v3/place/text?keywords=' + encodeURIComponent(q) + '&key=' + AMAP_KEY);
+
     const data = await r.json();
     
     if (data.status === '1' && data.pois && data.pois.length > 0) {
