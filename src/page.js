@@ -804,20 +804,41 @@ async function searchPlace() {
   const q = document.getElementById('searchInput').value.trim();
   if (!q) return toast(t('enter_place'));
   const box = document.getElementById('searchResults');
-  box.innerHTML = '<div class="search-item">' + escHtml(t('searching')) + '<\\/div>';
+  box.innerHTML = '<div class="search-item">' + escHtml(t('searching')) + '<\/div>';
+  
+  const AMAP_KEY = '	caa188605b82ff16a8bf28eb707eeba6'; 
+
   try {
-    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&q='+encodeURIComponent(q), { headers: { 'Accept-Language': (lang === 'zh' ? 'zh-CN' : 'en') } });
-    searchResults = await r.json();
-    if (!searchResults.length) { box.innerHTML = ''; toast(t('not_found', q), 3000); return; }
-    box.innerHTML = searchResults.map(function(p, i){
-      const name = p.display_name || '';
-      return '<div class="search-item" onclick="selectSearchResult(' + i + ')">' +
-        '<div class="si-name">' + escHtml(name.split(',')[0]) + '<\\/div>' +
-        '<div class="si-sub">' + escHtml(name) + '<\\/div>' +
-      '<\\/div>';
-    }).join('');
-  } catch(e) { box.innerHTML = ''; toast(t('search_failed'), 3000); }
+    const r = await fetch(`https://restapi.amap.com/v3/place/text?keywords=${encodeURIComponent(q)}&key=${AMAP_KEY}`);
+    const data = await r.json();
+    
+    if (data.status === '1' && data.pois && data.pois.length > 0) {
+      searchResults = data.pois.map(p => {
+        const [lng, lat] = p.location.split(',');
+        const addr = `${p.pname||''}${p.cityname||''}${p.adname||''}${p.address||''}`;
+        return {
+          display_name: addr ? `${p.name} (${addr})` : p.name,
+          lat: lat,
+          lon: lng
+        };
+      });
+      
+      box.innerHTML = searchResults.map(function(p, i){
+        return '<div class="search-item" onclick="selectSearchResult(' + i + ')">' +
+          '<div class="si-name">' + escHtml(p.display_name.split(' (')[0]) + '<\/div>' +
+          '<div class="si-sub">' + escHtml(p.display_name) + '<\/div>' +
+        '<\/div>';
+      }).join('');
+    } else {
+      box.innerHTML = ''; 
+      toast(t('not_found', q), 3000);
+    }
+  } catch(e) { 
+    box.innerHTML = ''; 
+    toast(t('search_failed'), 3000); 
+  }
 }
+
 function selectSearchResult(i) {
   const p = searchResults[i];
   if (!p) return;
