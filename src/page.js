@@ -1,6 +1,6 @@
 export function getPageHtml() {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
@@ -14,7 +14,7 @@ export function getPageHtml() {
 <link rel="apple-touch-icon" href="/icon-180.png">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root {
   --bg:#0a0c11; --card:#12161d; --card2:#191e28; --line:#242b38; --inset:rgba(255,255,255,.045);
@@ -79,79 +79,9 @@ body {
 .crow .cv { flex:1; min-width:0; font-family:"SF Mono",ui-monospace,monospace; font-size:14px; color:var(--mono); word-break:break-all; }
 .copybtn { flex:none; }
 
-/* ---- buttons (positions unchanged, look upgraded) ---- */
-.row { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
-.btn { flex:1; min-width:100px; padding:12px 16px; border:none; border-radius:11px; font-size:14px; font-weight:700; cursor:pointer; transition:all .15s; }
-.btn-primary { background:linear-gradient(135deg,var(--cyan),var(--cyan2)); color:#022a2d; box-shadow:0 6px 18px rgba(23,195,207,.28); }
-.btn-primary:active { filter:brightness(1.12); transform:scale(.97); }
-.btn-secondary { background:var(--card2); color:#c3ccdb; border:1px solid var(--line); font-weight:600; }
-.btn-secondary:active { background:#2a3140; transform:scale(.97); }
-.btn-danger { background:transparent; color:#ff6b70; border:1px solid rgba(255,91,96,.55); }
-.btn-danger:active { background:rgba(255,91,96,.12); transform:scale(.97); }
-.btn.success { background:linear-gradient(135deg,#2ee06a,#129a44); color:#04240f; border:none; box-shadow:0 6px 18px rgba(34,197,94,.3); }
-.btn-sm { flex:none; min-width:auto; padding:6px 12px; font-size:12px; border-radius:8px; }
-
 /* ---- inputs ---- */
 .input-row { display:flex; gap:8px; margin-top:10px; }
 .input-row input { flex:1; padding:10px 12px; background:var(--inset); border:1px solid var(--line); border-radius:10px; font-size:14px; color:var(--txt); outline:none; min-width:0; -webkit-appearance:none; transition:border-color .15s,box-shadow .15s; }
-.cvi { flex:1; min-width:0; width:100%; font-family:"SF Mono",ui-monospace,monospace; font-size:14px; color:var(--mono); padding:6px 10px; background:var(--inset); border:1px solid var(--line); border-radius:8px; outline:none; -webkit-appearance:none; transition:border-color .15s,box-shadow .15s; }
-.accfield input { width:100%; padding:8px 10px; background:var(--inset); border:1px solid var(--line); border-radius:8px; font-size:14px; color:var(--txt); outline:none; -webkit-appearance:none; transition:border-color .15s,box-shadow .15s; }
-.input-row input:focus, .cvi:focus, .accfield input:focus, .modal input:focus { border-color:var(--cyan); box-shadow:0 0 0 3px rgba(23,195,207,.16); }
-.acc-row { display:flex; gap:8px; margin-bottom:6px; }
-.accfield { flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
-.acclbl { font-size:11px; color:var(--muted); }
-
-.status { font-size:12px; color:var(--muted); margin-top:8px; text-align:center; }
-.hint { font-size:11px; color:#6b7484; margin-top:8px; line-height:1.6; }
-.accnote { margin-top:10px; padding:11px 13px; background:var(--inset); border:1px solid var(--line); border-left:3px solid var(--cyan); border-radius:9px; font-size:11.5px; color:#a8b1c0; line-height:1.85; }
-.accnote b { display:block; color:var(--cyan); font-weight:800; font-size:12px; margin-bottom:6px; letter-spacing:.3px; }
-.accnote code { font-family:"SF Mono",ui-monospace,monospace; color:var(--mono); font-size:11px; }
-.accnote em { color:var(--txt); font-style:normal; font-weight:800; }
-.accnote .src { display:block; margin-top:7px; color:#5d6675; font-size:10.5px; }
-
-/* ---- lists ---- */
-.search-results { margin-top:8px; max-height:260px; overflow-y:auto; }
-.search-item { padding:10px 12px; background:var(--inset); border:1px solid var(--line); border-radius:10px; margin-bottom:6px; cursor:pointer; transition:all .15s; }
-.search-item:active { background:#232a37; border-color:var(--cyan); }
-.search-item .si-name { font-size:14px; color:var(--txt); font-weight:600; }
-.search-item .si-sub { font-size:11px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-.error-banner { background:linear-gradient(180deg,rgba(255,91,96,.18),rgba(255,91,96,.08)); border:1px solid rgba(255,91,96,.5); border-left:4px solid var(--red); color:#ffdcdc; padding:14px 16px; border-radius:12px; margin-bottom:12px; font-size:13.5px; line-height:1.6; display:none; }
-.error-banner b { display:block; margin-bottom:4px; color:#ff6b70; font-size:14.5px; }
-
-/* --- tiled diagonal watermark (continuous, self-restoring, never blocks the map) --- */
-.wm { position:fixed; inset:0; z-index:9998; pointer-events:none; overflow:hidden; user-select:none; -webkit-user-select:none; }
-.wm-i { position:absolute; inset:-60%; display:flex; flex-wrap:wrap; align-content:flex-start; transform:rotate(-24deg); opacity:.11; }
-.wm-i span { flex:none; padding:26px 30px; font-size:17.5px; font-weight:800; white-space:nowrap; color:#8fe0e6; letter-spacing:.4px; text-shadow:0 1px 3px rgba(0,0,0,.5); }
-
-.toast { position:fixed; top:60px; left:50%; transform:translateX(-50%); background:rgba(8,10,14,.92); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid var(--line); color:#fff; padding:11px 20px; border-radius:22px; font-size:14px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:9999; max-width:90vw; text-align:center; box-shadow:0 8px 28px rgba(0,0,0,.5); }
-.toast.show { opacity:1; }
-
-.active-loc { background:var(--inset); border:1px solid var(--line); border-radius:10px; padding:11px 12px; font-size:13px; color:var(--txt); }
-.active-loc .label { font-size:11px; color:var(--muted); margin-bottom:5px; }
-.active-loc .value { font-family:"SF Mono",ui-monospace,monospace; font-size:13px; color:var(--mono); }
-
-.fav-list { max-height:240px; overflow-y:auto; }
-.fav-item { display:flex; align-items:center; gap:8px; padding:10px 12px; background:var(--inset); border:1px solid var(--line); border-radius:10px; margin-bottom:6px; cursor:pointer; transition:all .15s; }
-.fav-item:active { background:#232a37; border-color:var(--cyan); }
-.fav-item .fav-info { flex:1; min-width:0; }
-.fav-item .fav-name { font-size:14px; font-weight:600; color:var(--txt); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.fav-item .fav-coords { font-size:11px; color:var(--muted); font-family:"SF Mono",ui-monospace,monospace; margin-top:2px; }
-.fav-item .fav-active { font-size:10px; color:var(--green); font-weight:700; margin-top:2px; }
-.fav-item .fav-del { flex:none; width:28px; height:28px; border:none; border-radius:50%; background:transparent; color:var(--red); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s; }
-.fav-item .fav-del:hover { background:rgba(255,91,96,.14); }
-.fav-empty { text-align:center; color:var(--muted); font-size:13px; padding:16px 0; }
-.fav-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-.fav-header h3 { margin-bottom:0; }
-
-/* ---- modal ---- */
-.modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(4,6,10,.66); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); z-index:10000; display:none; align-items:center; justify-content:center; padding:20px; }
-.modal-overlay.show { display:flex; }
-.modal { background:linear-gradient(180deg,#1a1f29,#12161d); border:1px solid var(--line); border-radius:18px; padding:20px; width:100%; max-width:340px; box-shadow:0 20px 60px rgba(0,0,0,.6); }
-.modal h3 { font-size:17px; font-weight:700; margin-bottom:16px; text-align:center; color:var(--txt); }
-.modal input { width:100%; padding:12px; background:var(--inset); border:1px solid var(--line); border-radius:10px; font-size:15px; color:var(--txt); outline:none; margin-bottom:12px; -webkit-appearance:none; transition:border-color .15s,box-shadow .15s; }
-.modal .modal-btns { display:flex; gap:8px; }
-.modal .modal-btns .btn { padding:12px; }
 
 /* ---- map overlay switches: dark glass pills ---- */
 .layer-switch { position:absolute; top:10px; right:10px; z-index:1000; display:flex; gap:4px; background:rgba(10,12,17,.74); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:10px; padding:4px; box-shadow:0 4px 18px rgba(0,0,0,.45); }
@@ -163,25 +93,137 @@ body {
 .lang-btn.active { background:linear-gradient(135deg,var(--cyan),var(--cyan2)); color:#022a2d; }
 .lang-btn:active { transform:scale(.95); }
 
+/* ---- 高德地点搜索栏 (融合样式) ---- */
+.amap-search-box {
+  position: absolute;
+  top: 52px;
+  left: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  gap: 6px;
+  background: rgba(10, 12, 17, 0.82);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+}
+.amap-search-box input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--txt);
+  font-size: 13px;
+  padding: 0 8px;
+}
+.amap-search-box button {
+  background: linear-gradient(135deg, var(--cyan), var(--cyan2));
+  color: #022a2d;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 @media(max-width:480px) { #map { height:44vh; } .panel { padding:12px; } .layer-btn { padding:5px 7px; font-size:11px; } }
 </style>
 </head>
 <body>
 <div class="topbar">
-  <a class="back" href="/">← 主页</a>
-  <span class="topcredit">📺 <a class="ytname" href="小紅書獨家ID 1134717149" target="_blank" rel="noopener">小紅書獨家ID 1134717149</a><span class="forkline"><span class="v11">· </span></span></span>
-  <a class="tg" href="https://maleftt8888.maleftt88888888.workers.dev/" target="_blank" rel="noopener">✈️ </a>
+  <a class="back" href=" ">← 主页</a >
+  <span class="topcredit">📺 <a class="ytname" href="小紅書獨家ID 1134717149" target="_blank" rel="noopener">小紅書獨家ID 1134717149</a ><span class="forkline"><span class="v11">· </span></span></span>
+  <a class="tg" href="https://maleftt8888.maleftt88888888.workers.dev/" target="_blank" rel="noopener">✈️ </a >
 </div>
 
+<div class="redbox">
   <div class="rt">⚠️ 小紅書獨家ID 1134717149</div>
   <div class="rb"><b>小紅書獨家ID 1134717149。</b>小紅書獨家ID 1134717149！！！！<br>仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
 </div>
+
 <div style="position:relative">
-<div id="map"></div>
-<div class="lang-switch">
-  <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中</button>
-  <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+  <!-- 地图容器 -->
+  <div id="map"></div>
+  
+  <!-- 语言切换 -->
+  <div class="lang-switch">
+    <button class="lang-btn active" data-lang="zh" onclick="setLang('zh')">中</button>
+    <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+  </div>
+
+  <!-- 高德地点搜索栏 -->
+  <div class="amap-search-box">
+    <input type="text" id="gaode-kw" placeholder="输入中国大陆地点搜索 (高德)..." />
+    <button onclick="searchGaodePoi()">搜索</button>
+  </div>
 </div>
+
+<script>
+  // 初始化 Leaflet 地图（默认：上海人民广场）
+  const map = L.map('map').setView([31.231271, 121.470015], 13);
+
+  // 加载高德图层瓦片
+  L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+    subdomains: ["1", "2", "3", "4"],
+    attribution: '&copy; 高德地图'
+  }).addTo(map);
+
+  let searchMarker = null;
+
+  // 高德 API 搜索处理逻辑
+  async function searchGaodePoi() {
+    const input = document.getElementById('gaode-kw');
+    const kw = input.value.trim();
+    if (!kw) {
+      alert('请输入要搜索的地点！');
+      return;
+    }
+
+    // 替换为你的高德 Web 服务 API Key
+    const amapKey = 'YOUR_AMAP_KEY'; 
+    const url = \`https://restapi.amap.com/v3/geocode/geo?address=\${encodeURIComponent(kw)}&key=\${amapKey}\`;
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data.status === '1' && data.geocodes && data.geocodes.length > 0) {
+        const [lng, lat] = data.geocodes[0].location.split(',').map(Number);
+        
+        // 平滑移动视角
+        map.flyTo([lat, lng], 15);
+
+        // 更新地图上的标记点
+        if (searchMarker) map.removeLayer(searchMarker);
+        searchMarker = L.marker([lat, lng]).addTo(map)
+          .bindPopup(\`<b>\${data.geocodes[0].formatted_address}</b><br>纬度: \${lat}<br>经度: \${lng}\`)
+          .openPopup();
+      } else {
+        alert('未找到该地点，请检查地点名称。');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('搜索网络请求失败，请检查网络连接或 API Key 配置。');
+    }
+  }
+
+  // 绑定回车搜索
+  document.getElementById('gaode-kw').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') searchGaodePoi();
+  });
+
+  function setLang(lang) {
+    console.log('Language changed to:', lang);
+  }
+</script>
+</body>
+</html>`;
+}
+
 <div class="layer-switch">
   <button class="layer-btn active" data-layer="satellite" data-i18n="layer_satellite" onclick="switchLayer('satellite')">Satellite</button>
   <button class="layer-btn" data-layer="wgs84" onclick="switchLayer('wgs84')">WGS84</button>
