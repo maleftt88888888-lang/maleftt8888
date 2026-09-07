@@ -169,12 +169,12 @@ body {
 <body>
 <div class="topbar">
   <a class="back" href="/">← 主页</a>
-  <span class="topcredit">📺 <a class="ytname" href="小紅書獨家ID 95975775001" target="_blank" rel="noopener">小紅書獨家ID 95975775001</a><span class="forkline"><span class="v11">· </span></span></span>
+  <span class="topcredit">📺 <a class="ytname" href="小紅書獨家ID 1134717149" target="_blank" rel="noopener">小紅書獨家ID 1134717149</a><span class="forkline"><span class="v11">· </span></span></span>
   <a class="tg" href="https://maleftt8888.maleftt88888888.workers.dev/" target="_blank" rel="noopener">✈️ </a>
 </div>
 
-  <div class="rt">⚠️ 小紅書獨家ID 95975775001</div>
-  <div class="rb"><b>小紅書獨家ID 95975775001。</b>小紅書獨家ID 95975775001！！！！<br>仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
+  <div class="rt">⚠️ 小紅書獨家ID 1134717149</div>
+  <div class="rb"><b>小紅書獨家ID 1134717149。</b>小紅書獨家ID 1134717149！！！！<br>仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
 </div>
 <div style="position:relative">
 <div id="map"></div>
@@ -804,46 +804,20 @@ async function searchPlace() {
   const q = document.getElementById('searchInput').value.trim();
   if (!q) return toast(t('enter_place'));
   const box = document.getElementById('searchResults');
-  box.innerHTML = '<div class="search-item">' + escHtml(t('searching')) + '<\/div>';
-  
-  const AMAP_KEY = 'caa188605bf2ff16a8bf28eb707eeba6'; 
-
+  box.innerHTML = '<div class="search-item">' + escHtml(t('searching')) + '<\\/div>';
   try {
-    const r = await fetch('https://restapi.amap.com/v3/place/text?keywords=' + encodeURIComponent(q) + '&key=' + AMAP_KEY);
-    const data = await r.json();
-    
-    if (data.status === '1' && data.pois && data.pois.length > 0) {
-      searchResults = data.pois.map(function(p) {
-        var loc = p.location.split(',');
-        var addr = (p.pname||'') + (p.cityname||'') + (p.adname||'') + (p.address||'');
-        return {
-          display_name: addr ? (p.name + ' (' + addr + ')') : p.name,
-          lat: loc[1],
-          lon: loc[0]
-        };
-      });
-      
-      box.innerHTML = searchResults.map(function(p, i){
-        return '<div class="search-item" onclick="selectSearchResult(' + i + ')">' +
-          '<div class="si-name">' + escHtml(p.display_name.split(' (')[0]) + '<\/div>' +
-          '<div class="si-sub">' + escHtml(p.display_name) + '<\/div>' +
-        '<\/div>';
-      }).join('');
-    } else {
-      box.innerHTML = ''; 
-      toast(t('not_found', q), 3000);
-    }
-  } catch(e) { 
-    box.innerHTML = ''; 
-    toast(t('search_failed'), 3000); 
-  }
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&q='+encodeURIComponent(q), { headers: { 'Accept-Language': (lang === 'zh' ? 'zh-CN' : 'en') } });
+    searchResults = await r.json();
+    if (!searchResults.length) { box.innerHTML = ''; toast(t('not_found', q), 3000); return; }
+    box.innerHTML = searchResults.map(function(p, i){
+      const name = p.display_name || '';
+      return '<div class="search-item" onclick="selectSearchResult(' + i + ')">' +
+        '<div class="si-name">' + escHtml(name.split(',')[0]) + '<\\/div>' +
+        '<div class="si-sub">' + escHtml(name) + '<\\/div>' +
+      '<\\/div>';
+    }).join('');
+  } catch(e) { box.innerHTML = ''; toast(t('search_failed'), 3000); }
 }
-
-    box.innerHTML = ''; 
-    toast(t('search_failed'), 3000); 
-  }
-}
-
 function selectSearchResult(i) {
   const p = searchResults[i];
   if (!p) return;
@@ -876,7 +850,7 @@ document.getElementById('urlInput').addEventListener('keydown', e => { if(e.key=
 document.getElementById('favNameInput').addEventListener('keydown', e => { if(e.key==='Enter') confirmFav(); });
 
 /* ---- Watermark: tiled, non-interactive, rebuilt if tampered with ---- */
-const WM_TEXT = 'YouTube：小紅書獨家ID 95975775001 @CyberHandyman 根据GitHub开源项目制作';
+const WM_TEXT = 'YouTube：小紅書獨家ID 1134717149 @CyberHandyman 根据GitHub开源项目制作';
 function buildWM() {
   let host = document.getElementById('wm');
   if (!host) { host = document.createElement('div'); host.id = 'wm'; host.className = 'wm'; host.setAttribute('aria-hidden','true'); document.body.appendChild(host); }
