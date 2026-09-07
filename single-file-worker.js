@@ -647,14 +647,14 @@ body {
 <body>
 <div class="topbar">
   <a class="back" href="/">← 主页</a>
-  <span class="topcredit">📺 <a class="ytname" href="https://wloc-spoofer.maleftt88888888.workers.dev/" target="_blank" rel="noopener">YouTube CyberHandyman 小紅書獨家ID 1134717149</a><span class="forkline"> · fork from 小紅書獨家ID <span class="v11">· 已同步 小紅書獨家ID</span></span></span>
+  <span class="topcredit">📺 <a class="ytname" href="https://wloc-spoofer.maleftt88888888.workers.dev/" target="_blank" rel="noopener">YouTube CyberHandyman 小紅書獨家ID 95975775001</a><span class="forkline"> · fork from 小紅書獨家ID <span class="v11">· 已同步 小紅書獨家ID</span></span></span>
   <a class="tg" href="https://wloc-spoofer.maleftt88888888.workers.dev/" target="_blank" rel="noopener">✈️ TG群</a>
 </div>
 <div class="redbox">
-  <div class="rt">⚠️ 小紅書獨家ID 1134717149</div>
-  <div class="rb"><b>小紅書獨家ID 1134717149。</b>小紅書獨家ID 1134717149！！！！<br>仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
+  <div class="rt">⚠️ 小紅書獨家ID 95975775001</div>
+  <div class="rb"><b>小紅書獨家ID 95975775001。</b>小紅書獨家ID 95975775001！！！！<br>仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
 </div>
-<a class="vidbtn" href="小紅書獨家ID 1134717149" target="_blank" rel="noopener" data-i18n="video_btn">▶️ 小紅書獨家ID 1134717149</a>
+<a class="vidbtn" href="小紅書獨家ID 95975775001" target="_blank" rel="noopener" data-i18n="video_btn">▶️ 小紅書獨家ID 95975775001</a>
 <div style="position:relative">
 <div id="map"></div>
 <div class="lang-switch">
@@ -803,7 +803,7 @@ const I18N = {
     saving: '储存中...', saved: '✓ 已储存',
     written: function(lo, la, ts){ return '✓ 已写入: ' + lo.toFixed(6) + ', ' + la.toFixed(6) + ' · ' + ts; },
     saved_toast: '✓ 坐标已成功写入模块，定位服务关闭开关，等待至少 10 秒钟，再次开启生效',
-    video_btn: '小紅書獨家ID 1134717149',
+    video_btn: '小紅書獨家ID 95975775001',
     save_failed: '✗ 储存失败 - 请检查模块配置', write_failed: '写入失败',
     no_geo: '浏览器不支持定位', getting_loc: '获取位置中...', got_loc: '已获取当前位置',
     loc_failed: function(m){ return '定位失败: ' + m; },
@@ -1329,7 +1329,7 @@ document.getElementById('urlInput').addEventListener('keydown', e => { if(e.key=
 document.getElementById('favNameInput').addEventListener('keydown', e => { if(e.key==='Enter') confirmFav(); });
 
 /* ---- Watermark: tiled, non-interactive, rebuilt if tampered with ---- */
-const WM_TEXT = 'YouTube：小紅書獨家ID 1134717149 @CyberHandyman 根据GitHub开源项目制作';
+const WM_TEXT = 'YouTube：小紅書獨家ID 95975775001 @CyberHandyman 根据GitHub开源项目制作';
 function buildWM() {
   let host = document.getElementById('wm');
   if (!host) { host = document.createElement('div'); host.id = 'wm'; host.className = 'wm'; host.setAttribute('aria-hidden','true'); document.body.appendChild(host); }
@@ -1465,26 +1465,26 @@ footer b{ color:#8fe0e6; }
 <body>
 <div class="wrap">
   <div class="warn">
-    <div class="t">⚠️ 小紅書獨家ID 1134717149</div>
-    <div class="b"><b>小紅書獨家ID 1134717149。</b><br>小紅書獨家ID 1134717149 / 小紅書獨家ID 1134717149。一经发现立即删库，血本无归。</div>
+    <div class="t">⚠️ 小紅書獨家ID 95975775001</div>
+    <div class="b"><b>小紅書獨家ID 95975775001。</b><br>小紅書獨家ID 95975775001 / 小紅書獨家ID 95975775001。一经发现立即删库，血本无归。</div>
   </div>
   
 
   <header>
     <div class="logowrap"><img class="logo" src="/icon.svg" alt=""></div>
     <h1>iOS Location Spoofer · 虚拟定位</h1>
-    <p class="ytline">📺 <a class="yt" href="https://wloc-spoofer.maleftt88888888.workers.dev//@CyberHandyman/videos" target="_blank" rel="noopener">YouTube：CyberHandyman 小紅書獨家ID 1134717149</a></p>
+    <p class="ytline">📺 <a class="yt" href="https://wloc-spoofer.maleftt88888888.workers.dev//@CyberHandyman/videos" target="_blank" rel="noopener">YouTube：CyberHandyman 小紅書獨家ID 95975775001</a></p>
     <p class="credit">
       fork from 鸣谢贡献者：<a href="https://github.com/Yu9191/wloc" target="_blank" rel="noopener">Yu9191</a> ·
       <a href="https://github.com/mekos2772/ios-location-spoofer" target="_blank" rel="noopener">mekos2772</a> ·
       <a href="https://github.com/acheong08/ios-location-spoofer" target="_blank" rel="noopener">acheong08</a>
     </p>
-    <p class="synced">✅ 已同步上游 <a href="https://wloc-spoofer.maleftt88888888.workers.dev/" target="_blank" rel="noopener">小紅書獨家ID 1134717149</a>：随机扰动半径 · 港澳台/百度坐标解析</p>
+    <p class="synced">✅ 已同步上游 <a href="https://wloc-spoofer.maleftt88888888.workers.dev/" target="_blank" rel="noopener">小紅書獨家ID 95975775001</a>：随机扰动半径 · 港澳台/百度坐标解析</p>
   </header>
 
   <div class="ctas">
     <a class="enter go" href="/picker">🗺️ 进入选点网页</a>
-    <a class="enter video" href="小紅書獨家ID 1134717149" target="_blank" rel="noopener">▶️ 视频教程</a>
+    <a class="enter video" href="小紅書獨家ID 95975775001" target="_blank" rel="noopener">▶️ 视频教程</a>
   </div>
  
 
@@ -1516,7 +1516,7 @@ footer b{ color:#8fe0e6; }
 <div class="toast" id="toast"></div>
 <script>
 /* ---- Watermark: tiled, non-interactive, rebuilt if tampered with ---- */
-var WM_TEXT = 'YouTube：小紅書獨家ID 1134717149 @CyberHandyman 根据GitHub开源项目制作';
+var WM_TEXT = 'YouTube：小紅書獨家ID 95975775001 @CyberHandyman 根据GitHub开源项目制作';
 function buildWM(){
   var host = document.getElementById('wm');
   if (!host){ host = document.createElement('div'); host.id = 'wm'; host.className = 'wm'; host.setAttribute('aria-hidden','true'); document.body.appendChild(host); }
@@ -1630,7 +1630,7 @@ app.get("/location-spoofer-qx.js", (c) => c.body(b64ToBytes(LOCATION_SPOOFER_QX_
 
 function sgmodule(origin) {
   return String.raw`#!name=iOS Location Spoofer (Stateless)
-#!desc=小紅書獨家ID 1134717149。无状态版：坐标写入每台设备各自的本机存储、可公开共用、多人互不覆盖。搭配选点页使用。适用于 Shadowrocket / Surge / Egern。
+#!desc=小紅書獨家ID 95975775001。无状态版：坐标写入每台设备各自的本机存储、可公开共用、多人互不覆盖。搭配选点页使用。适用于 Shadowrocket / Surge / Egern。
 #!homepage=${origin}
 
 [Script]
@@ -1642,7 +1642,7 @@ hostname = %APPEND% gs-loc.apple.com, gs-loc-cn.apple.com, bluedot.is.autonavi.c
 }
 function stoverride(origin) {
   return String.raw`name: iOS Location Spoofer (Stateless)
-desc: "小紅書獨家ID 1134717149。iOS Location Spoofer 无状态版 (Stash)"
+desc: "小紅書獨家ID 95975775001。iOS Location Spoofer 无状态版 (Stash)"
 homepage: ${origin}
 
 http:
@@ -1674,7 +1674,7 @@ script-providers:
 }
 function lnplugin(origin) {
   return String.raw`#!name=iOS Location Spoofer (Stateless)
-#!desc=小紅書獨家ID 1134717149。无状态版，配合选点页使用。Loon 插件。
+#!desc=小紅書獨家ID 95975775001。无状态版，配合选点页使用。Loon 插件。
 #!homepage=${origin}
 
 [Script]
@@ -1688,7 +1688,7 @@ hostname = gs-loc.apple.com, gs-loc-cn.apple.com, bluedot.is.autonavi.com, blued
 // not auto-merge MITM hostnames the way Surge modules do, so the user must add them manually.
 function qxsnippet(origin) {
   return String.raw`#!name=iOS Location Spoofer (Stateless)
-#!desc=小紅書獨家ID 1134717149。无状态版。Quantumult X 用「重写(rewrite)引用」(非模块/插件)。MITM 主机名需手动加进 QX 设置 → MITM。
+#!desc=小紅書獨家ID 95975775001。无状态版。Quantumult X 用「重写(rewrite)引用」(非模块/插件)。MITM 主机名需手动加进 QX 设置 → MITM。
 #!homepage=${origin}
 
 [rewrite_local]
@@ -1764,8 +1764,8 @@ app.post("/tg", async (c) => {
     const origin = new URL(c.req.url).origin;
     const reply =
       "📍 iOS 虚拟定位 · 选点主页\n" + origin + "/\n\n" +
-      "▶️ 视频教程：小紅書獨家ID 1134717149\n\n" +
-      "⚠️ 小紅書獨家ID 1134717149。";
+      "▶️ 视频教程：小紅書獨家ID 95975775001\n\n" +
+      "⚠️ 小紅書獨家ID 95975775001。";
     await fetch("https://api.telegram.org/bot" + token + "/sendMessage", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
