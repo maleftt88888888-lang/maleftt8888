@@ -9,16 +9,18 @@ const app = new Hono();
 
 /* ---- 选点页面密码拦截中间件 ---- */
 app.use("/picker", async (c, next) => {
-  // 从环境变量读取密码，若未设置 TOKEN 变量则跳过拦截
-  const authToken = c.env?.TOKEN || ""; 
+  // 增强版环境变量读取：兼容不同版本的 Hono 和 Cloudflare 环境对象
+  const authToken = c.env?.TOKEN || (typeof TOKEN !== "undefined" ? TOKEN : ""); 
+
+  // 如果后台未设置 TOKEN，则直接放行
   if (!authToken) {
     return await next();
   }
 
-  // 从 URL 参数中获取 token 或 pwd (支持 /picker?token=密码 或 /picker?pwd=密码)
+  // 从 URL 参数获取 token 或 pwd
   const userToken = c.req.query("token") || c.req.query("pwd") || "";
 
-  // 密码不匹配时，弹出输入框提示
+  // 校验密码
   if (userToken !== authToken) {
     const html = `<!DOCTYPE html>
     <html lang="zh-CN">
@@ -86,10 +88,7 @@ app.get("/icon-180.png", (c) => c.body(b64ToBytes(ICON_180_B64), 200, { "Content
 app.get("/icon-512.png", (c) => c.body(b64ToBytes(ICON_512_B64), 200, { "Content-Type": "image/png", "Cache-Control": IMG_CACHE }));
 app.get("/favicon.ico", (c) => c.body(ICON_SVG, 200, { "Content-Type": "image/svg+xml", "Cache-Control": IMG_CACHE }));
 
-/* ---- Self-hosted on-device module ----
-   Serve the two module scripts + a subscribable manifest so the whole stateless
-   setup runs from this worker with NO GitHub dependency. The manifest self-references
-   whatever domain served it (workers.dev URL or a custom domain). */
+/* ---- Self-hosted on-device module ---- */
 const JS_HEADERS = { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=3600" };
 app.get("/location-spoofer.js", (c) => c.body(b64ToBytes(LOCATION_SPOOFER_B64), 200, JS_HEADERS));
 app.get("/location-settings.js", (c) => c.body(b64ToBytes(LOCATION_SETTINGS_B64), 200, JS_HEADERS));
@@ -245,6 +244,8 @@ export default {
         ua: (request.headers.get("user-agent") || "").slice(0, 90),
       }));
     } catch (e) {}
+    
+    // 关键修正：确保把 env 传递给 Hono 路由
     return app.fetch(request, env, ctx);
   },
 };
