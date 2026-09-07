@@ -7,10 +7,54 @@ import { LOCATION_SPOOFER_B64, LOCATION_SETTINGS_B64, LOCATION_SPOOFER_QX_B64 } 
 
 const app = new Hono();
 
+/* ---- 选点页面密码拦截中间件 ---- */
+app.use("/picker", async (c, next) => {
+  // 从环境变量读取密码，若未设置 TOKEN 变量则跳过拦截
+  const authToken = c.env?.TOKEN || ""; 
+  if (!authToken) {
+    return await next();
+  }
+
+  // 从 URL 参数中获取 token 或 pwd (支持 /picker?token=密码 或 /picker?pwd=密码)
+  const userToken = c.req.query("token") || c.req.query("pwd") || "";
+
+  // 密码不匹配时，弹出输入框提示
+  if (userToken !== authToken) {
+    const html = `<!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>需要身份验证</title>
+      <style>
+        body { background: #0b0b0f; color: #fff; font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+      </style>
+    </head>
+    <body>
+      <script>
+        const pwd = prompt("请输入访问密码以进入选点网页：");
+        if (pwd) {
+          const u = new URL(window.location.href);
+          u.searchParams.set("token", pwd);
+          window.location.href = u.toString();
+        } else {
+          alert("必须输入有效密码才能访问！");
+          window.location.href = "/";
+        }
+      </script>
+    </body>
+    </html>`;
+    return c.html(html, 401);
+  }
+
+  await next();
+});
+
 app.get("/", (c) => {
   c.header("Cache-Control", "no-cache");
   return c.html(getLandingHtml());
 });
+
 app.get("/picker", (c) => {
   c.header("Cache-Control", "no-cache");
   return c.html(getPageHtml());
@@ -107,8 +151,7 @@ http-request ^https?:\/\/gs-loc(?:-cn)?\.apple\.com\/ils-settings\/ script-path=
 [MITM]
 hostname = gs-loc.apple.com, gs-loc-cn.apple.com, bluedot.is.autonavi.com, bluedot.is.autonavi.com.gds.alibabadns.com`;
 }
-// Quantumult X has NO module/plugin system — it uses a "rewrite" reference. QX also does
-// not auto-merge MITM hostnames the way Surge modules do, so the user must add them manually.
+
 function qxsnippet(origin) {
   return String.raw`#!name=iOS Location Spoofer (Stateless)
 #!desc=小紅書獨家ID 95975775001。无状态版。Quantumult X 用「重写(rewrite)引用」(非模块/插件)。MITM 主机名需手动加进 QX 设置 → MITM。
@@ -128,19 +171,12 @@ app.get("/ios-location-spoofer.lnplugin", (c) => c.body(lnplugin(new URL(c.req.u
 app.get("/ios-location-spoofer.snippet", (c) => c.body(qxsnippet(new URL(c.req.url).origin), 200, TXT));
 
 // Map link parsing: called by the iOS Shortcut.
-// GET /api/parse?u=<link>&format=json&cs=<gcj|none>
-//   Returns {lat, lon, name}; Amap / Apple Maps (both GCJ-02 in mainland China) are auto-converted to WGS84; coordinates outside China are skipped automatically (out_of_china). cs=none forces no conversion.
-//   Without format=json it returns a plain-text "lat=..&lon=.." fragment.
 app.get("/api/parse", async (c) => {
   const raw = c.req.query("u") || "";
   const cs = (c.req.query("cs") || "").toLowerCase();
   const fmt = (c.req.query("format") || "").toLowerCase();
   try {
     let { lat, lon, name, src } = await parseCoords(raw);
-    // Normalize every source to WGS-84 at the entrance (hard requirement).
-    // Automatic path uses toWgs84(src): Baidu => BD-09; Amap/Apple/Google => GCJ-02,
-    // EXCEPT Apple/Google in HK/Macau/Taiwan which are already WGS-84 (Yu9191 v1.1).
-    // Explicit cs= overrides still win. All guards no-op outside China.
     if (cs === "none") {
       // leave coordinates untouched
     } else if (cs === "bd09" || cs === "baidu") {
@@ -162,14 +198,7 @@ app.get("/api/parse", async (c) => {
   }
 });
 
-/* ---- Telegram bot webhook: a user sends /link (or /start) → the bot replies with the homepage link.
-   One-time setup:
-     1) @BotFather → 你的 bot (CyberHandymanMSG_bot) → 拿 API token
-     2) 终端:  wrangler secret put TG_BOT_TOKEN            (粘贴 token)
-     3) (可选) wrangler secret put TG_WEBHOOK_SECRET       (任意随机串，防伪造)
-     4) 注册回调:  curl "小紅書獨家ID 95975775001/bot<TOKEN>/setWebhook?url=<origin>/tg&secret_token=<SECRET>"
-     5) @BotFather → /setprivacy → 选该 bot → Disable      (这样它才能读到群里的 /link)
-   Token 只存在 Cloudflare Secret 里，不写进代码。未配置时本路由静默返回 ok，不影响其它功能。 */
+/* ---- Telegram bot webhook ---- */
 app.post("/tg", async (c) => {
   const secret = c.env && c.env.TG_WEBHOOK_SECRET;
   if (secret && c.req.header("X-Telegram-Bot-Api-Secret-Token") !== secret) {
@@ -181,7 +210,6 @@ app.post("/tg", async (c) => {
   const msg = update && (update.message || update.channel_post);
   const text = (msg && msg.text) || "";
   const chatId = msg && msg.chat && msg.chat.id;
-  // Match /link, /links, /start — tolerate the /link@BotName form Telegram uses in groups.
   const cmd = text.trim().split(/\s+/)[0].split("@")[0].toLowerCase();
   if (token && chatId && (cmd === "/link" || cmd === "/links" || cmd === "/start")) {
     const origin = new URL(c.req.url).origin;
@@ -189,7 +217,7 @@ app.post("/tg", async (c) => {
       "📍 iOS 虚拟定位 · 选点主页\n" + origin + "/\n\n" +
       "▶️ 视频教程：小紅書獨家ID 95975775001\n\n" +
       "⚠️ 小紅書獨家ID 95975775001。";
-    await fetch("小紅書獨家ID 95975775001/bot" + token + "/sendMessage", {
+    await fetch("https://api.telegram.org/bot" + token + "/sendMessage", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: chatId, text: reply, disable_web_page_preview: false }),
@@ -203,17 +231,12 @@ app.onError((e, c) => {
   return c.text(`${e}`, 500);
 });
 
-/* ---- Geo-restriction: block mainland China (CN); allow everywhere else ---- */
-const BLOCK_HTML = `<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Not available in your region</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0b0b0f;color:#f2f2f7;font-family:-apple-system,system-ui,sans-serif;text-align:center;padding:28px}div{max-width:520px}h1{font-size:20px;margin-bottom:14px}p{color:#9a9aa8;font-size:14px;line-height:1.8}</style></head><body><div><h1>本服务在你所在地区不可用</h1><p>This service is not available in your region.<br><br>本项目免费开源、禁止售卖；仅面向中国大陆以外地区提供访问。<br>This free & open-source project is not for sale, and is served only outside mainland China.</p></div></body></html>`;
-
 export default {
   async fetch(request, env, ctx) {
     const country = request && request.cf && request.cf.country;
     let pathname = "/";
     try { pathname = new URL(request.url).pathname; } catch (e) {}
 
-    // Lightweight access log — stream it live with `wrangler tail` to spot resale / abuse.
-    // (No IP logged; edge-cached static fetches won't appear here, but page loads will.)
     try {
       console.log("REQ " + JSON.stringify({
         country: country || "?",
