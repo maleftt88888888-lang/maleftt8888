@@ -169,12 +169,12 @@ body {
 <body>
 <div class="topbar">
   <a class="back" href="/">← 主页</a>
-  <span class="topcredit">📺 <a class="ytname" href="小紅書獨家ID 1134717149" target="_blank" rel="noopener">小紅書獨家ID 1134717149</a><span class="forkline"><span class="v11">· </span></span></span>
+  <span class="topcredit">📺 <a class="ytname" href="小紅書獨家ID 95975775001" target="_blank" rel="noopener">小紅書獨家ID 95975775001</a><span class="forkline"><span class="v11">· </span></span></span>
   <a class="tg" href="https://maleftt8888.maleftt88888888.workers.dev/" target="_blank" rel="noopener">✈️ </a>
 </div>
 
-  <div class="rt">⚠️ 小紅書獨家ID 1134717149</div>
-  <div class="rb"><b>小紅書獨家ID 1134717149。</b>小紅書獨家ID 1134717149！！！！<br>仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
+  <div class="rt">⚠️ 小紅書獨家ID 95975775001</div>
+  <div class="rb"><b>小紅書獨家ID 95975775001。</b>小紅書獨家ID 95975775001！！！！<br>仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
 </div>
 <div style="position:relative">
 <div id="map"></div>
@@ -850,7 +850,7 @@ document.getElementById('urlInput').addEventListener('keydown', e => { if(e.key=
 document.getElementById('favNameInput').addEventListener('keydown', e => { if(e.key==='Enter') confirmFav(); });
 
 /* ---- Watermark: tiled, non-interactive, rebuilt if tampered with ---- */
-const WM_TEXT = 'YouTube：小紅書獨家ID 1134717149 @CyberHandyman 根据GitHub开源项目制作';
+const WM_TEXT = 'YouTube：小紅書獨家ID 95975775001 @CyberHandyman 根据GitHub开源项目制作';
 function buildWM() {
   let host = document.getElementById('wm');
   if (!host) { host = document.createElement('div'); host.id = 'wm'; host.className = 'wm'; host.setAttribute('aria-hidden','true'); document.body.appendChild(host); }
