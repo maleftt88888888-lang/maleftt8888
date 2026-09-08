@@ -7,36 +7,57 @@ import { LOCATION_SPOOFER_B64, LOCATION_SETTINGS_B64, LOCATION_SPOOFER_QX_B64 } 
 
 const app = new Hono();
 
-/* ---- 全局卡密 & 用户名 & 到期时间 & 单设备绑定拦截中间件 ---- */
+// 常量定义
+const JS_HEADERS = { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=3600" };
+const TXT_HEADERS = { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" };
+const IMG_CACHE = "public, max-age=604800, immutable";
+const DEFAULT_USER_NAME = "尊贵用户";
+
+/* ---- 辅助函数：安全获取 KV ---- */
+const getKV = (c) => c.env?.CARD_KEYS || (typeof CARD_KEYS !== "undefined" ? CARD_KEYS : null);
+
+/* ---- 辅助函数：解析/格式化 KV 保存的数据 ---- */
+function parseKeyData(raw) {
+  let expire = raw;
+  let deviceId = null;
+  let name = DEFAULT_USER_NAME;
+
+  if (raw && raw.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(raw);
+      expire = parsed.expire || expire;
+      deviceId = parsed.deviceId || null;
+      name = parsed.name || name;
+    } catch (e) {
+      console.error("解析 KV 数据失败:", e);
+    }
+  }
+  return { expire, deviceId, name };
+}
+
+/* ---- 静态资源后缀与路径白名单校验 ---- */
+function isStaticOrPublicAsset(pathname) {
+  const staticExtensions = [".png", ".svg", ".ico", ".webmanifest", ".js", ".sgmodule", ".stoverride", ".lnplugin", ".snippet"];
+  const publicPrefixes = ["/unbind", "/admin", "/api/", "/tg"];
+
+  return (
+    staticExtensions.some((ext) => pathname.endsWith(ext)) ||
+    publicPrefixes.some((prefix) => pathname.startsWith(prefix))
+  );
+}
+
+/* ---- 1. 全局身份与卡密拦截中间件 ---- */
 app.use("*", async (c, next) => {
   const url = new URL(c.req.url);
-  const pathname = url.pathname;
-
-  // 放行静态资源、解绑页面、管理员页面及 API
-  const isStaticAsset =
-    pathname.endsWith(".png") ||
-    pathname.endsWith(".svg") ||
-    pathname.endsWith(".ico") ||
-    pathname.endsWith(".webmanifest") ||
-    pathname.endsWith(".js") ||
-    pathname.endsWith(".sgmodule") ||
-    pathname.endsWith(".stoverride") ||
-    pathname.endsWith(".lnplugin") ||
-    pathname.endsWith(".snippet") ||
-    pathname.startsWith("/unbind") ||
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/api/") ||
-    pathname === "/tg";
-
-  if (isStaticAsset) {
+  if (isStaticOrPublicAsset(url.pathname)) {
     return await next();
   }
 
-  // 1. 获取卡密
+  // 1. 获取卡密 (Query -> Cookie)
   let userKey = c.req.query("key") || c.req.query("token") || c.req.query("pwd") || "";
   const cookieHeader = c.req.header("Cookie") || "";
   const cookies = Object.fromEntries(
-    cookieHeader.split(";").map(item => {
+    cookieHeader.split(";").map((item) => {
       const [k, ...v] = item.trim().split("=");
       return [k, (v || []).join("=")];
     })
@@ -76,7 +97,7 @@ app.use("*", async (c, next) => {
     return c.html(loginHtml, 401);
   }
 
-  const KV = c.env?.CARD_KEYS || (typeof CARD_KEYS !== "undefined" ? CARD_KEYS : null);
+  const KV = getKV(c);
   if (!KV) return c.text("错误：未能在环境变量中绑定 CARD_KEYS KV 数据库！", 500);
 
   // 3. 从 KV 校验卡密
@@ -85,21 +106,10 @@ app.use("*", async (c, next) => {
     return c.html("<h2 style='color:red;text-align:center;margin-top:20%'>❌ 错误：卡密无效或不存在！</h2>", 403);
   }
 
-  let expireDateStr = keyDataRaw;
-  let boundDeviceId = null;
-  let userName = "尊贵用户";
-
-  if (keyDataRaw.startsWith("{")) {
-    try {
-      const parsed = JSON.parse(keyDataRaw);
-      expireDateStr = parsed.expire || expireDateStr;
-      boundDeviceId = parsed.deviceId || null;
-      userName = parsed.name || userName;
-    } catch (e) {}
-  }
+  const { expire: expireDateStr, deviceId: boundDeviceId, name: userName } = parseKeyData(keyDataRaw);
 
   // 4. 到期时间校验
-  const formattedExpireStr = expireDateStr.replace(/-(\d)(?=-|$)/g, '-0$1');
+  const formattedExpireStr = expireDateStr.replace(/-(\d)(?=-|$)/g, "-0$1");
   const expireTime = new Date(`${formattedExpireStr}T23:59:59+08:00`).getTime();
 
   if (isNaN(expireTime) || Date.now() > expireTime) {
@@ -108,7 +118,7 @@ app.use("*", async (c, next) => {
   }
 
   // 5. 设备绑定校验
-  let currentDeviceId = cookies.device_id || crypto.randomUUID();
+  const currentDeviceId = cookies.device_id || crypto.randomUUID();
   if (!boundDeviceId) {
     await KV.put(userKey, JSON.stringify({ name: userName, expire: expireDateStr, deviceId: currentDeviceId }));
   } else if (boundDeviceId !== currentDeviceId) {
@@ -140,12 +150,11 @@ app.use("*", async (c, next) => {
         ⏳ 有效期：<span style="color: #34c759; font-weight: 600;">${displayText}</span>
       </div>
     `;
-    const newBody = originalBody.replace("</body>", `${floatingBadge}</body>`);
-    c.res = new Response(newBody, c.res);
+    c.res = new Response(originalBody.replace("</body>", `${floatingBadge}</body>`), c.res);
   }
 });
 
-/* ---- CF 内置：用户自助解绑页面 ---- */
+/* ---- 2. 用户页面及 API ---- */
 app.get("/unbind", (c) => {
   const html = `<!DOCTYPE html>
   <html lang="zh-CN">
@@ -182,9 +191,7 @@ app.get("/unbind", (c) => {
           const text = await res.text();
           if (res.ok) {
             msgDiv.innerHTML = "<span style='color:#34c759;'>" + text + "</span><br><br><span style='color:#007aff;font-size:12px;'>3秒后将自动跳往主页...</span>";
-            setTimeout(() => {
-              window.location.href = "/?key=" + encodeURIComponent(key);
-            }, 3000);
+            setTimeout(() => { window.location.href = "/?key=" + encodeURIComponent(key); }, 3000);
           } else {
             msgDiv.innerHTML = "<span style='color:#ff3b30;'>" + text + "</span>";
           }
@@ -198,32 +205,23 @@ app.get("/unbind", (c) => {
   return c.html(html);
 });
 
-/* ---- 用户自助解绑 API ---- */
 app.get("/api/user-unbind", async (c) => {
   const targetKey = c.req.query("key");
   if (!targetKey) return c.text("❌ 请输入卡密", 400);
 
-  const KV = c.env?.CARD_KEYS || (typeof CARD_KEYS !== "undefined" ? CARD_KEYS : null);
-  const keyDataRaw = await KV.get(targetKey);
+  const KV = getKV(c);
+  if (!KV) return c.text("❌ 未找到 KV 数据库绑定", 500);
 
+  const keyDataRaw = await KV.get(targetKey);
   if (!keyDataRaw) return c.text("❌ 卡密不存在或已被删除", 404);
 
-  let expireDateStr = keyDataRaw;
-  let userName = "尊贵用户";
-
-  if (keyDataRaw.startsWith("{")) {
-    try {
-      const parsed = JSON.parse(keyDataRaw);
-      expireDateStr = parsed.expire || expireDateStr;
-      userName = parsed.name || userName;
-    } catch (e) {}
-  }
+  const { expire: expireDateStr, name: userName } = parseKeyData(keyDataRaw);
 
   await KV.put(targetKey, JSON.stringify({ name: userName, expire: expireDateStr }));
   return c.text(`✅ 用户 [${userName}] 的设备解绑成功！现在可以在新设备上登录了。`);
 });
 
-/* ---- 管理员后台控制台（/admin） ---- */
+/* ---- 3. 管理员后台控制台 ---- */
 app.get("/admin", (c) => {
   const html = `<!DOCTYPE html>
   <html lang="zh-CN">
@@ -246,7 +244,6 @@ app.get("/admin", (c) => {
   <body>
     <div class="box">
       <h2>🛠️ 管理员控制台</h2>
-      
       <div>
         <label style="font-size: 12px; color: #aaa;">🔑 管理员密码：</label>
         <input type="password" id="adminPwd" placeholder="请输入 ADMIN_PWD" />
@@ -268,7 +265,6 @@ app.get("/admin", (c) => {
     </div>
 
     <script>
-      // 默认设置到期时间为一年后
       const nextYear = new Date();
       nextYear.setFullYear(nextYear.getFullYear() + 1);
       document.getElementById("newExpire").value = nextYear.toISOString().split("T")[0];
@@ -340,74 +336,47 @@ app.get("/admin", (c) => {
   return c.html(html);
 });
 
-/* ---- 管理员 API：创建/新增卡密 ---- */
 app.post("/api/admin/create-key", async (c) => {
   try {
-    const body = await c.req.json();
-    const { adminPwd, key, name, expire } = body;
-
+    const { adminPwd, key, name, expire } = await c.req.json();
     const correctAdminPwd = c.env?.ADMIN_PWD || "your_admin_secret";
-    if (adminPwd !== correctAdminPwd) {
-      return c.text("❌ 管理员密码错误", 403);
-    }
 
-    if (!key || !expire) {
-      return c.text("❌ 卡密与到期时间不能为空", 400);
-    }
+    if (adminPwd !== correctAdminPwd) return c.text("❌ 管理员密码错误", 403);
+    if (!key || !expire) return c.text("❌ 卡密与到期时间不能为空", 400);
 
-    const KV = c.env?.CARD_KEYS || (typeof CARD_KEYS !== "undefined" ? CARD_KEYS : null);
+    const KV = getKV(c);
     if (!KV) return c.text("❌ 未找到 KV 数据库绑定", 500);
 
-    // 存入 KV 数据库，清空旧的设备绑定数据
-    await KV.put(key, JSON.stringify({ name: name || "尊贵用户", expire: expire }));
-
-    return c.text(`✅ 卡密创建成功！\n🔑 卡密: ${key}\n👤 用户: ${name}\n⏳ 有效期至: ${expire}`);
+    await KV.put(key, JSON.stringify({ name: name || DEFAULT_USER_NAME, expire }));
+    return c.text(`✅ 卡密创建成功！\n🔑 卡密: ${key}\n👤 用户: ${name || DEFAULT_USER_NAME}\n⏳ 有效期至: ${expire}`);
   } catch (e) {
     return c.text("❌ 解析请求参数失败", 400);
   }
 });
 
-/* ---- 管理员后台解绑 API ---- */
 app.get("/api/unbind", async (c) => {
   const adminPwd = c.req.query("admin_pwd");
   const targetKey = c.req.query("key");
-
   const correctAdminPwd = c.env?.ADMIN_PWD || "your_admin_secret";
 
-  if (adminPwd !== correctAdminPwd) {
-    return c.text("❌ 管理员密码错误", 403);
-  }
-  if (!targetKey) {
-    return c.text("❌ 请提供要解绑的卡密 ?key=xxx", 400);
-  }
+  if (adminPwd !== correctAdminPwd) return c.text("❌ 管理员密码错误", 403);
+  if (!targetKey) return c.text("❌ 请提供要解绑的卡密 ?key=xxx", 400);
 
-  const KV = c.env?.CARD_KEYS || (typeof CARD_KEYS !== "undefined" ? CARD_KEYS : null);
+  const KV = getKV(c);
+  if (!KV) return c.text("❌ 未找到 KV 数据库绑定", 500);
+
   const keyDataRaw = await KV.get(targetKey);
+  if (!keyDataRaw) return c.text("❌ 未找到该卡密", 404);
 
-  if (!keyDataRaw) {
-    return c.text("❌ 未找到该卡密", 404);
-  }
-
-  let expireDateStr = keyDataRaw;
-  let userName = "尊贵用户";
-
-  if (keyDataRaw.startsWith("{")) {
-    try {
-      const parsed = JSON.parse(keyDataRaw);
-      expireDateStr = parsed.expire || expireDateStr;
-      userName = parsed.name || userName;
-    } catch (e) {}
-  }
+  const { expire: expireDateStr, name: userName } = parseKeyData(keyDataRaw);
 
   await KV.put(targetKey, JSON.stringify({ name: userName, expire: expireDateStr }));
   return c.text(`✅ 用户 [${userName}] 的卡密 [${targetKey}] 设备解绑成功！当前有效至：${expireDateStr}`);
 });
 
-/* ---- API 鉴权 ---- */
-app.get("/api/check-auth", (c) => {
-  return c.json({ success: true, message: "验证通过" });
-});
+app.get("/api/check-auth", (c) => c.json({ success: true, message: "验证通过" }));
 
+/* ---- 4. 静态与页面路由 ---- */
 app.get("/", (c) => {
   c.header("Cache-Control", "no-cache");
   return c.html(getLandingHtml());
@@ -418,7 +387,7 @@ app.get("/picker", (c) => {
   return c.html(getPageHtml());
 });
 
-/* ---- PWA: manifest + icons ---- */
+// PWA Manifest & Icons
 const MANIFEST = {
   name: "iOS Location Spoofer",
   short_name: "iOSLoc",
@@ -435,23 +404,21 @@ const MANIFEST = {
     { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
   ],
 };
-const IMG_CACHE = "public, max-age=604800, immutable";
-app.get("/manifest.webmanifest", (c) =>
-  c.body(JSON.stringify(MANIFEST), 200, { "Content-Type": "application/manifest+json", "Cache-Control": IMG_CACHE })
-);
+
+app.get("/manifest.webmanifest", (c) => c.body(JSON.stringify(MANIFEST), 200, { "Content-Type": "application/manifest+json", "Cache-Control": IMG_CACHE }));
 app.get("/icon.svg", (c) => c.body(ICON_SVG, 200, { "Content-Type": "image/svg+xml", "Cache-Control": IMG_CACHE }));
 app.get("/icon-180.png", (c) => c.body(b64ToBytes(ICON_180_B64), 200, { "Content-Type": "image/png", "Cache-Control": IMG_CACHE }));
 app.get("/icon-512.png", (c) => c.body(b64ToBytes(ICON_512_B64), 200, { "Content-Type": "image/png", "Cache-Control": IMG_CACHE }));
 app.get("/favicon.ico", (c) => c.body(ICON_SVG, 200, { "Content-Type": "image/svg+xml", "Cache-Control": IMG_CACHE }));
 
-/* ---- Modules & Overrides ---- */
-const JS_HEADERS = { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=3600" };
+// JS Modules
 app.get("/location-spoofer.js", (c) => c.body(b64ToBytes(LOCATION_SPOOFER_B64), 200, JS_HEADERS));
 app.get("/location-settings.js", (c) => c.body(b64ToBytes(LOCATION_SETTINGS_B64), 200, JS_HEADERS));
 app.get("/location-spoofer-qx.js", (c) => c.body(b64ToBytes(LOCATION_SPOOFER_QX_B64), 200, JS_HEADERS));
 
-function sgmodule(origin) {
-  return String.raw`#!name=iOS Location Spoofer (Stateless)
+/* ---- 5. 配置文件生成 ---- */
+const generateConfigs = {
+  sgmodule: (origin) => String.raw`#!name=iOS Location Spoofer (Stateless)
 #!desc=小紅書獨家ID 95975775001。无状态版：坐标写入每台设备各自的本机存储、可公开共用、多人互不覆盖。搭配选点页使用。适用于 Shadowrocket / Surge / Egern。
 #!homepage=${origin}
 
@@ -460,10 +427,9 @@ iOS Location Spoofer = type=http-response,pattern=^https?:\/\/(?:gs-loc(?:-cn)?\
 iLS Settings = type=http-request,pattern=^https?:\/\/gs-loc(?:-cn)?\.apple\.com\/ils-settings\/,requires-body=0,max-size=0,timeout=10,script-path=${origin}/location-settings.js
 
 [MITM]
-hostname = %APPEND% gs-loc.apple.com, gs-loc-cn.apple.com, bluedot.is.autonavi.com, bluedot.is.autonavi.com.gds.alibabadns.com`;
-}
-function stoverride(origin) {
-  return String.raw`name: iOS Location Spoofer (Stateless)
+hostname = %APPEND% gs-loc.apple.com, gs-loc-cn.apple.com, bluedot.is.autonavi.com, bluedot.is.autonavi.com.gds.alibabadns.com`,
+
+  stoverride: (origin) => String.raw`name: iOS Location Spoofer (Stateless)
 desc: "小紅書獨家ID 95975775001。iOS Location Spoofer 无状态版 (Stash)"
 homepage: ${origin}
 
@@ -492,10 +458,9 @@ script-providers:
     interval: 86400
   ios-location-settings:
     url: ${origin}/location-settings.js
-    interval: 86400`;
-}
-function lnplugin(origin) {
-  return String.raw`#!name=iOS Location Spoofer (Stateless)
+    interval: 86400`,
+
+  lnplugin: (origin) => String.raw`#!name=iOS Location Spoofer (Stateless)
 #!desc=小紅書獨家ID 95975775001。无状态版，配合选点页使用。Loon 插件。
 #!homepage=${origin}
 
@@ -504,11 +469,9 @@ http-response ^https?:\/\/(?:gs-loc(?:-cn)?\.apple\.com|bluedot\.is\.autonavi\.c
 http-request ^https?:\/\/gs-loc(?:-cn)?\.apple\.com\/ils-settings\/ script-path=${origin}/location-settings.js, requires-body=false, timeout=10, tag=iLS Settings
 
 [MITM]
-hostname = gs-loc.apple.com, gs-loc-cn.apple.com, bluedot.is.autonavi.com, bluedot.is.autonavi.com.gds.alibabadns.com`;
-}
+hostname = gs-loc.apple.com, gs-loc-cn.apple.com, bluedot.is.autonavi.com, bluedot.is.autonavi.com.gds.alibabadns.com`,
 
-function qxsnippet(origin) {
-  return String.raw`#!name=iOS Location Spoofer (Stateless)
+  qxsnippet: (origin) => String.raw`#!name=iOS Location Spoofer (Stateless)
 #!desc=小紅書獨家ID 95975775001。无状态版。Quantumult X 用「重写(rewrite)引用」(非模块/插件)。MITM 主机名需手动加进 QX 设置 → MITM。
 #!homepage=${origin}
 
@@ -517,90 +480,106 @@ function qxsnippet(origin) {
 ^https?:\/\/gs-loc(?:-cn)?\.apple\.com\/ils-settings\/ url script-echo-response ${origin}/location-settings.js
 
 [mitm]
-hostname = gs-loc.apple.com, gs-loc-cn.apple.com, bluedot.is.autonavi.com, bluedot.is.autonavi.com.gds.alibabadns.com`;
-}
-const TXT = { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" };
-app.get("/ios-location-spoofer.sgmodule", (c) => c.body(sgmodule(new URL(c.req.url).origin), 200, TXT));
-app.get("/ios-location-spoofer.stoverride", (c) => c.body(stoverride(new URL(c.req.url).origin), 200, TXT));
-app.get("/ios-location-spoofer.lnplugin", (c) => c.body(lnplugin(new URL(c.req.url).origin), 200, TXT));
-app.get("/ios-location-spoofer.snippet", (c) => c.body(qxsnippet(new URL(c.req.url).origin), 200, TXT));
+hostname = gs-loc.apple.com, gs-loc-cn.apple.com, bluedot.is.autonavi.com, bluedot.is.autonavi.com.gds.alibabadns.com`
+};
 
-// Map link parsing
+app.get("/ios-location-spoofer.sgmodule", (c) => c.body(generateConfigs.sgmodule(new URL(c.req.url).origin), 200, TXT_HEADERS));
+app.get("/ios-location-spoofer.stoverride", (c) => c.body(generateConfigs.stoverride(new URL(c.req.url).origin), 200, TXT_HEADERS));
+app.get("/ios-location-spoofer.lnplugin", (c) => c.body(generateConfigs.lnplugin(new URL(c.req.url).origin), 200, TXT_HEADERS));
+app.get("/ios-location-spoofer.snippet", (c) => c.body(generateConfigs.qxsnippet(new URL(c.req.url).origin), 200, TXT_HEADERS));
+
+/* ---- 6. 地图坐标解析 API ---- */
 app.get("/api/parse", async (c) => {
   const raw = c.req.query("u") || "";
   const cs = (c.req.query("cs") || "").toLowerCase();
   const fmt = (c.req.query("format") || "").toLowerCase();
+
   try {
     let { lat, lon, name, src } = await parseCoords(raw);
-    if (cs === "none") {
-      // leave coordinates untouched
-    } else if (cs === "bd09" || cs === "baidu") {
-      ({ lat, lon } = toWgs84(lat, lon, "baidu"));
-    } else if (cs === "gcj") {
-      ({ lat, lon } = gcj02ToWgs84(lat, lon));
-    } else {
-      ({ lat, lon } = toWgs84(lat, lon, src));
+
+    if (cs !== "none") {
+      if (cs === "bd09" || cs === "baidu") {
+        ({ lat, lon } = toWgs84(lat, lon, "baidu"));
+      } else if (cs === "gcj") {
+        ({ lat, lon } = gcj02ToWgs84(lat, lon));
+      } else {
+        ({ lat, lon } = toWgs84(lat, lon, src));
+      }
     }
+
     lat = round6(lat);
     lon = round6(lon);
     name = name || "";
+
     c.header("Access-Control-Allow-Origin", "*");
     if (fmt === "json") return c.json({ lat, lon, name });
     return c.text(`lat=${lat}&lon=${lon}`);
   } catch (e) {
     c.header("Access-Control-Allow-Origin", "*");
-    return c.json({ error: String(e && e.message ? e.message : e) }, 422);
+    return c.json({ error: String(e?.message || e) }, 422);
   }
 });
 
-/* ---- Telegram bot webhook ---- */
+/* ---- 7. Telegram Bot Webhook ---- */
 app.post("/tg", async (c) => {
-  const secret = c.env && c.env.TG_WEBHOOK_SECRET;
+  const secret = c.env?.TG_WEBHOOK_SECRET;
   if (secret && c.req.header("X-Telegram-Bot-Api-Secret-Token") !== secret) {
     return c.text("forbidden", 403);
   }
-  const token = c.env && c.env.TG_BOT_TOKEN;
+
+  const token = c.env?.TG_BOT_TOKEN;
   let update = null;
-  try { update = await c.req.json(); } catch (e) {}
-  const msg = update && (update.message || update.channel_post);
-  const text = (msg && msg.text) || "";
-  const chatId = msg && msg.chat && msg.chat.id;
+  try {
+    update = await c.req.json();
+  } catch (e) {}
+
+  const msg = update?.message || update?.channel_post;
+  const text = msg?.text || "";
+  const chatId = msg?.chat?.id;
   const cmd = text.trim().split(/\s+/)[0].split("@")[0].toLowerCase();
-  if (token && chatId && (cmd === "/link" || cmd === "/links" || cmd === "/start")) {
+
+  if (token && chatId && ["/link", "/links", "/start"].includes(cmd)) {
     const origin = new URL(c.req.url).origin;
     const reply =
-      "📍 iOS 虚拟定位 · 选点主页\n" + origin + "/\n\n" +
+      `📍 iOS 虚拟定位 · 选点主页\n${origin}/\n\n` +
       "▶️ 视频教程：小紅書獨家ID 95975775001\n\n" +
       "⚠️ 小紅書獨家ID 95975775001。";
-    await fetch("https://api.telegram.org/bot" + token + "/sendMessage", {
+
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: chatId, text: reply, disable_web_page_preview: false }),
     });
   }
+
   return c.text("ok", 200);
 });
 
+/* ---- 全局异常捕获 ---- */
 app.onError((e, c) => {
-  console.error(`${e}`);
+  console.error(`Uncaught Error: ${e}`);
   return c.text(`${e}`, 500);
 });
 
+/* ---- Worker 主入口导出 ---- */
 export default {
   async fetch(request, env, ctx) {
-    const country = request && request.cf && request.cf.country;
+    const country = request?.cf?.country || "?";
     let pathname = "/";
-    try { pathname = new URL(request.url).pathname; } catch (e) {}
-
     try {
-      console.log("REQ " + JSON.stringify({
-        country: country || "?",
-        path: pathname,
-        ref: request.headers.get("referer") || "",
-        ua: (request.headers.get("user-agent") || "").slice(0, 90),
-      }));
+      pathname = new URL(request.url).pathname;
     } catch (e) {}
-    
+
+    console.log(
+      "REQ " +
+        JSON.stringify({
+          country,
+          path: pathname,
+          ref: request.headers.get("referer") || "",
+          ua: (request.headers.get("user-agent") || "").slice(0, 90),
+        })
+    );
+
     return app.fetch(request, env, ctx);
   },
 };
