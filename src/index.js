@@ -23,14 +23,13 @@ app.use("*", async (c, next) => {
     pathname.endsWith(".stoverride") ||
     pathname.endsWith(".lnplugin") ||
     pathname.endsWith(".snippet") ||
-    pathname.startsWith("/api/") ||
     pathname === "/tg";
 
   if (isStaticAsset) {
     return await next();
   }
 
-  // 1. 获取卡密（优先取 URL 参数 ?key=xxx 或 ?token=xxx，其次取 Cookie）
+  // 1. 获取卡密（优先取 URL 参数 ?key=xxx，其次取 Cookie）
   let userKey = c.req.query("key") || c.req.query("token") || c.req.query("pwd") || "";
   const cookieHeader = c.req.header("Cookie") || "";
   const cookies = Object.fromEntries(
@@ -108,10 +107,8 @@ app.use("*", async (c, next) => {
   // 5. 设备绑定校验 (一卡一人)
   let currentDeviceId = cookies.device_id || crypto.randomUUID();
   if (!boundDeviceId) {
-    // 首次使用卡密，绑定当前设备
     await KV.put(userKey, JSON.stringify({ expire: expireDateStr, deviceId: currentDeviceId }));
   } else if (boundDeviceId !== currentDeviceId) {
-    // 第二台设备拦截
     return c.html("<h2 style='color:orange;text-align:center;margin-top:20%'>⚠️ 提示：该卡密已被其他设备绑定，无法在第二台设备上使用！</h2>", 403);
   }
 
@@ -122,12 +119,10 @@ app.use("*", async (c, next) => {
 
   await next();
 
-  // 7. 如果返回的是 HTML 页面，自动注入浮窗（年份大于等于2099自动切换为“永久有效”）
+  // 7. 注入全局浮窗（年份 >= 2099 显示永久有效）
   const contentType = c.res.headers.get("content-type") || "";
   if (contentType.includes("text/html")) {
     const originalBody = await c.res.text();
-    
-    // 判断是否为永久卡（设置年份 >= 2099 即判定为永久）
     const isPermanent = parseInt(expireDateStr.split("-")[0], 10) >= 2099;
     const displayText = isPermanent ? "永久有效" : expireDateStr;
 
@@ -141,6 +136,11 @@ app.use("*", async (c, next) => {
   }
 });
 
+/* ---- 方案 B 所需：卡密鉴权 API ---- */
+app.get("/api/check-auth", (c) => {
+  return c.json({ success: true, message: "验证通过" });
+});
+
 app.get("/", (c) => {
   c.header("Cache-Control", "no-cache");
   return c.html(getLandingHtml());
@@ -151,7 +151,7 @@ app.get("/picker", (c) => {
   return c.html(getPageHtml());
 });
 
-/* ---- PWA: manifest + icons (enables "Add to Home Screen") ---- */
+/* ---- PWA: manifest + icons ---- */
 const MANIFEST = {
   name: "iOS Location Spoofer",
   short_name: "iOSLoc",
@@ -177,7 +177,7 @@ app.get("/icon-180.png", (c) => c.body(b64ToBytes(ICON_180_B64), 200, { "Content
 app.get("/icon-512.png", (c) => c.body(b64ToBytes(ICON_512_B64), 200, { "Content-Type": "image/png", "Cache-Control": IMG_CACHE }));
 app.get("/favicon.ico", (c) => c.body(ICON_SVG, 200, { "Content-Type": "image/svg+xml", "Cache-Control": IMG_CACHE }));
 
-/* ---- Self-hosted on-device module ---- */
+/* ---- Modules & Overrides ---- */
 const JS_HEADERS = { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=3600" };
 app.get("/location-spoofer.js", (c) => c.body(b64ToBytes(LOCATION_SPOOFER_B64), 200, JS_HEADERS));
 app.get("/location-settings.js", (c) => c.body(b64ToBytes(LOCATION_SETTINGS_B64), 200, JS_HEADERS));
@@ -258,7 +258,7 @@ app.get("/ios-location-spoofer.stoverride", (c) => c.body(stoverride(new URL(c.r
 app.get("/ios-location-spoofer.lnplugin", (c) => c.body(lnplugin(new URL(c.req.url).origin), 200, TXT));
 app.get("/ios-location-spoofer.snippet", (c) => c.body(qxsnippet(new URL(c.req.url).origin), 200, TXT));
 
-// Map link parsing: called by the iOS Shortcut.
+// Map link parsing
 app.get("/api/parse", async (c) => {
   const raw = c.req.query("u") || "";
   const cs = (c.req.query("cs") || "").toLowerCase();
