@@ -88,7 +88,7 @@ footer b{ color:#8fe0e6; }
   </header>
 
   <div class="ctas">
-    <a href="/picker" class="enter go">🗺️ 进入选点网页</a>
+    <button type="button" class="enter go" onclick="handleEnterPicker()">🗺️ 进入选点网页</button>
   </div>
 
   <div class="divider"></div>
@@ -151,6 +151,23 @@ footer b{ color:#8fe0e6; }
 <div class="toast" id="toast"></div>
 
 <script>
+// 点击先异步校验 API 权限，通过后再跳转
+function handleEnterPicker() {
+  toast("正在验证权限...");
+  fetch('/api/check-auth')
+    .then(function(res) {
+      if (res.ok) {
+        window.location.href = "/picker";
+      } else {
+        toast("卡密已过期或失效，请重新登录");
+        setTimeout(function(){ location.reload(); }, 1200);
+      }
+    })
+    .catch(function() {
+      toast("网络异常，请稍后再试");
+    });
+}
+
 function openShadowrocket() {
   var origin = location.origin;
   var moduleUrl = origin + '/ios-location-spoofer.sgmodule';
@@ -189,7 +206,6 @@ function doCopy(file, btn){
   }).catch(function(){ toast('复制失败，请手动选择'); }); 
 }
 
-// 自动填入按钮的相对跳转链接
 window.onload = function() {
   var origin = location.origin;
   var sgUrl = origin + '/ios-location-spoofer.sgmodule';
