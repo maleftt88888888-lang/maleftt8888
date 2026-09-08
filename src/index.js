@@ -98,8 +98,8 @@ app.use("*", async (c, next) => {
     } catch (e) {}
   }
 
-  // 4. 到期时间校验
-  const expireTime = new Date(expireDateStr + 'T23:59:59Z').getTime();
+  // 4. 到期时间校验（修正：精确使用 UTC+8 中国标准时间，截至指定日期当天 23:59:59）
+  const expireTime = new Date(`${expireDateStr}T23:59:59+08:00`).getTime();
   if (Date.now() > expireTime) {
     return c.html(`<h2 style='color:red;text-align:center;margin-top:20%'>⏰ 您的卡密已于 ${expireDateStr} 到期，请联系管理员续费。</h2>`, 403);
   }
@@ -136,9 +136,41 @@ app.use("*", async (c, next) => {
   }
 });
 
-/* ---- 方案 B 所需：卡密鉴权 API ---- */
+/* ---- 方案 B：卡密鉴权 API ---- */
 app.get("/api/check-auth", (c) => {
   return c.json({ success: true, message: "验证通过" });
+});
+
+/* ---- 管理员解绑 API ---- */
+app.get("/api/unbind", async (c) => {
+  const adminPwd = c.req.query("admin_pwd");
+  const targetKey = c.req.query("key");
+
+  // 可根据需要修改你的管理员密钥密码
+  if (adminPwd !== "your_admin_secret") {
+    return c.text("❌ 管理员密码错误", 403);
+  }
+  if (!targetKey) {
+    return c.text("❌ 请提供要解绑的卡密 ?key=xxx", 400);
+  }
+
+  const KV = c.env?.CARD_KEYS || (typeof CARD_KEYS !== "undefined" ? CARD_KEYS : null);
+  const keyDataRaw = await KV.get(targetKey);
+
+  if (!keyDataRaw) {
+    return c.text("❌ 未找到该卡密", 404);
+  }
+
+  let expireDateStr = keyDataRaw;
+  if (keyDataRaw.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(keyDataRaw);
+      expireDateStr = parsed.expire;
+    } catch (e) {}
+  }
+
+  await KV.put(targetKey, expireDateStr);
+  return c.text(`✅ 卡密 [${targetKey}] 设备解绑成功！当前有效至：${expireDateStr}`);
 });
 
 app.get("/", (c) => {
