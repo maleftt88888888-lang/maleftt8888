@@ -115,12 +115,30 @@ app.use("*", async (c, next) => {
     return c.html("<h2 style='color:orange;text-align:center;margin-top:20%'>⚠️ 提示：该卡密已被其他设备绑定，无法在第二台设备上使用！</h2>", 403);
   }
 
-  // 6. 验证通过，放行请求并写入持久化 Cookie
+  // 6. 验证通过：写入持久化 Cookie
+  c.header("Set-Cookie", `card_key=${userKey}; Path=/; Max-Age=2592000`, { append: true });
+  c.header("Set-Cookie", `device_id=${currentDeviceId}; Path=/; Max-Age=2592000; HttpOnly`, { append: true });
+  c.header("Set-Cookie", `expire_date=${expireDateStr}; Path=/; Max-Age=2592000`, { append: true });
+
   await next();
 
-  // 30 天免登录 Cookie
-  c.header("Set-Cookie", `card_key=${userKey}; Path=/; Max-Age=2592000; HttpOnly`, { append: true });
-  c.header("Set-Cookie", `device_id=${currentDeviceId}; Path=/; Max-Age=2592000; HttpOnly`, { append: true });
+  // 7. 如果返回的是 HTML 页面，自动注入浮窗（年份大于等于2099自动切换为“永久有效”）
+  const contentType = c.res.headers.get("content-type") || "";
+  if (contentType.includes("text/html")) {
+    const originalBody = await c.res.text();
+    
+    // 判断是否为永久卡（设置年份 >= 2099 即判定为永久）
+    const isPermanent = parseInt(expireDateStr.split("-")[0], 10) >= 2099;
+    const displayText = isPermanent ? "永久有效" : expireDateStr;
+
+    const floatingBadge = `
+      <div id="expire-badge" style="position: fixed; bottom: 12px; right: 12px; z-index: 999999; background: rgba(28,28,36,0.85); backdrop-filter: blur(8px); color: #8e8e93; font-size: 11px; padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); font-family: -apple-system, sans-serif; pointer-events: none; opacity: 0.85;">
+        ⏳ 服务有效期：<span style="color: #34c759; font-weight: 600;">${displayText}</span>
+      </div>
+    `;
+    const newBody = originalBody.replace("</body>", `${floatingBadge}</body>`);
+    c.res = new Response(newBody, c.res);
+  }
 });
 
 app.get("/", (c) => {
