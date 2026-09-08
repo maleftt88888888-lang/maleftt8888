@@ -7,7 +7,7 @@ import { LOCATION_SPOOFER_B64, LOCATION_SETTINGS_B64, LOCATION_SPOOFER_QX_B64 } 
 
 const app = new Hono();
 
-/* ---- 全局卡密 & 到期时间 & 单设备绑定拦截中间件 ---- */
+/* ---- 全局卡密 & 用户名 & 到期时间 & 单设备绑定拦截中间件 ---- */
 app.use("*", async (c, next) => {
   const url = new URL(c.req.url);
   const pathname = url.pathname;
@@ -89,25 +89,33 @@ app.use("*", async (c, next) => {
 
   let expireDateStr = keyDataRaw;
   let boundDeviceId = null;
+  let userName = "尊贵用户";
 
   if (keyDataRaw.startsWith("{")) {
     try {
       const parsed = JSON.parse(keyDataRaw);
-      expireDateStr = parsed.expire;
-      boundDeviceId = parsed.deviceId;
+      expireDateStr = parsed.expire || expireDateStr;
+      boundDeviceId = parsed.deviceId || null;
+      userName = parsed.name || userName;
     } catch (e) {}
   }
 
-  // 4. 到期时间校验（修正：精确使用 UTC+8 中国标准时间，截至指定日期当天 23:59:59）
-  const expireTime = new Date(`${expireDateStr}T23:59:59+08:00`).getTime();
-  if (Date.now() > expireTime) {
-    return c.html(`<h2 style='color:red;text-align:center;margin-top:20%'>⏰ 您的卡密已于 ${expireDateStr} 到期，请联系管理员续费。</h2>`, 403);
+  // 4. 到期时间校验（自动转换单数月份日期为标准 YYYY-MM-DD，使用 UTC+8 当日 23:59:59）
+  const formattedExpireStr = expireDateStr.replace(/-(\d)(?=-|$)/g, '-0$1');
+  const expireTime = new Date(`${formattedExpireStr}T23:59:59+08:00`).getTime();
+
+  if (isNaN(expireTime) || Date.now() > expireTime) {
+    // 强制清除 Cookie，防止循环通行
+    c.header("Set-Cookie", "card_key=; Path=/; Max-Age=0", { append: true });
+    c.header("Set-Cookie", "device_id=; Path=/; Max-Age=0", { append: true });
+    c.header("Set-Cookie", "expire_date=; Path=/; Max-Age=0", { append: true });
+    return c.html(`<h2 style='color:red;text-align:center;margin-top:20%'>⏰ 用户 [${userName}] 的卡密已于 ${expireDateStr} 到期，请联系管理员续费。</h2>`, 403);
   }
 
   // 5. 设备绑定校验 (一卡一人)
   let currentDeviceId = cookies.device_id || crypto.randomUUID();
   if (!boundDeviceId) {
-    await KV.put(userKey, JSON.stringify({ expire: expireDateStr, deviceId: currentDeviceId }));
+    await KV.put(userKey, JSON.stringify({ name: userName, expire: expireDateStr, deviceId: currentDeviceId }));
   } else if (boundDeviceId !== currentDeviceId) {
     return c.html("<h2 style='color:orange;text-align:center;margin-top:20%'>⚠️ 提示：该卡密已被其他设备绑定，无法在第二台设备上使用！</h2>", 403);
   }
@@ -119,7 +127,7 @@ app.use("*", async (c, next) => {
 
   await next();
 
-  // 7. 注入全局浮窗（年份 >= 2099 显示永久有效）
+  // 7. 注入全局浮窗（包含用户名和到期时间）
   const contentType = c.res.headers.get("content-type") || "";
   if (contentType.includes("text/html")) {
     const originalBody = await c.res.text();
@@ -127,8 +135,9 @@ app.use("*", async (c, next) => {
     const displayText = isPermanent ? "永久有效" : expireDateStr;
 
     const floatingBadge = `
-      <div id="expire-badge" style="position: fixed; bottom: 12px; right: 12px; z-index: 999999; background: rgba(28,28,36,0.85); backdrop-filter: blur(8px); color: #8e8e93; font-size: 11px; padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); font-family: -apple-system, sans-serif; pointer-events: none; opacity: 0.85;">
-        ⏳ 服务有效期：<span style="color: #34c759; font-weight: 600;">${displayText}</span>
+      <div id="expire-badge" style="position: fixed; bottom: 12px; right: 12px; z-index: 999999; background: rgba(28,28,36,0.88); backdrop-filter: blur(8px); color: #8e8e93; font-size: 11px; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); font-family: -apple-system, sans-serif; pointer-events: none; opacity: 0.9; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        👤 用户：<span style="color: #007aff; font-weight: 600; margin-right: 8px;">${userName}</span>
+        ⏳ 有效期：<span style="color: #34c759; font-weight: 600;">${displayText}</span>
       </div>
     `;
     const newBody = originalBody.replace("</body>", `${floatingBadge}</body>`);
@@ -146,7 +155,6 @@ app.get("/api/unbind", async (c) => {
   const adminPwd = c.req.query("admin_pwd");
   const targetKey = c.req.query("key");
 
-  // 可根据需要修改你的管理员密钥密码
   if (adminPwd !== "your_admin_secret") {
     return c.text("❌ 管理员密码错误", 403);
   }
@@ -162,15 +170,19 @@ app.get("/api/unbind", async (c) => {
   }
 
   let expireDateStr = keyDataRaw;
+  let userName = "尊贵用户";
+
   if (keyDataRaw.startsWith("{")) {
     try {
       const parsed = JSON.parse(keyDataRaw);
-      expireDateStr = parsed.expire;
+      expireDateStr = parsed.expire || expireDateStr;
+      userName = parsed.name || userName;
     } catch (e) {}
   }
 
-  await KV.put(targetKey, expireDateStr);
-  return c.text(`✅ 卡密 [${targetKey}] 设备解绑成功！当前有效至：${expireDateStr}`);
+  // 解绑时保留用户名和到期时间，仅清除 deviceId
+  await KV.put(targetKey, JSON.stringify({ name: userName, expire: expireDateStr }));
+  return c.text(`✅ 用户 [${userName}] 的卡密 [${targetKey}] 设备解绑成功！当前有效至：${expireDateStr}`);
 });
 
 app.get("/", (c) => {
