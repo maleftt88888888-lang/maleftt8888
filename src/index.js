@@ -155,7 +155,9 @@ app.get("/unbind", (c) => {
       body { font-family: -apple-system, sans-serif; background: #0c0c0e; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
       .box { background: #181820; padding: 30px; border-radius: 16px; width: 320px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
       input { width: 100%; padding: 12px; margin: 10px 0; background: #0c0c0e; border: 1px solid #2a2a38; color: #fff; border-radius: 8px; box-sizing: border-box; text-align: center; }
-      button { width: 100%; padding: 12px; background: #34c759; border: none; color: white; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+      .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; box-sizing: border-box; text-decoration: none; display: inline-block; font-size: 14px; }
+      .btn-unbind { background: #34c759; color: white; }
+      .btn-login { background: #007aff; color: white; margin-top: 12px; }
       #msg { margin-top: 15px; font-size: 13px; word-break: break-all; }
     </style>
   </head>
@@ -164,7 +166,8 @@ app.get("/unbind", (c) => {
       <h2>🔓 设备自助解绑</h2>
       <p style="font-size:12px;color:#888;">更换设备或提示绑定时，输入卡密即可解绑</p>
       <input type="text" id="cardKey" placeholder="请输入您的卡密" />
-      <button onclick="doUnbind()">一键解绑旧设备</button>
+      <button class="btn btn-unbind" onclick="doUnbind()">一键解绑旧设备</button>
+      <a href="/" class="btn btn-login">前往登录 / 进入主页</a>
       <div id="msg"></div>
     </div>
     <script>
@@ -176,7 +179,14 @@ app.get("/unbind", (c) => {
         try {
           const res = await fetch("/api/user-unbind?key=" + encodeURIComponent(key));
           const text = await res.text();
-          msgDiv.innerHTML = res.ok ? "<span style='color:#34c759;'>" + text + "</span>" : "<span style='color:#ff3b30;'>" + text + "</span>";
+          if (res.ok) {
+            msgDiv.innerHTML = "<span style='color:#34c759;'>" + text + "</span><br><br><span style='color:#007aff;font-size:12px;'>3秒后将自动跳往主页...</span>";
+            setTimeout(() => {
+              window.location.href = "/?key=" + encodeURIComponent(key);
+            }, 3000);
+          } else {
+            msgDiv.innerHTML = "<span style='color:#ff3b30;'>" + text + "</span>";
+          }
         } catch (e) {
           msgDiv.innerHTML = "<span style='color:red;'>网络错误，解绑失败</span>";
         }
