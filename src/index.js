@@ -12,7 +12,7 @@ app.use("*", async (c, next) => {
   const url = new URL(c.req.url);
   const pathname = url.pathname;
 
-  // 放行静态资源、解绑页面及 API
+  // 放行静态资源、解绑页面、管理员页面及 API
   const isStaticAsset =
     pathname.endsWith(".png") ||
     pathname.endsWith(".svg") ||
@@ -24,6 +24,7 @@ app.use("*", async (c, next) => {
     pathname.endsWith(".lnplugin") ||
     pathname.endsWith(".snippet") ||
     pathname.startsWith("/unbind") ||
+    pathname.startsWith("/admin") ||
     pathname.startsWith("/api/") ||
     pathname === "/tg";
 
@@ -218,14 +219,57 @@ app.get("/api/user-unbind", async (c) => {
     } catch (e) {}
   }
 
-  // 仅清除 deviceId
   await KV.put(targetKey, JSON.stringify({ name: userName, expire: expireDateStr }));
   return c.text(`✅ 用户 [${userName}] 的设备解绑成功！现在可以在新设备上登录了。`);
 });
 
-/* ---- 方案 B：卡密鉴权 API ---- */
-app.get("/api/check-auth", (c) => {
-  return c.json({ success: true, message: "验证通过" });
+/* ---- 管理员操作图形页面（/admin） ---- */
+app.get("/admin", (c) => {
+  const html = `<!DOCTYPE html>
+  <html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员控制台</title>
+    <style>
+      body { font-family: -apple-system, sans-serif; background: #0c0c0e; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+      .box { background: #181820; padding: 30px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+      input { width: 100%; padding: 12px; margin: 8px 0; background: #0c0c0e; border: 1px solid #2a2a38; color: #fff; border-radius: 8px; box-sizing: border-box; text-align: center; }
+      .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 12px; background: #ff9500; color: white; font-size: 14px; }
+      #msg { margin-top: 15px; font-size: 13px; word-break: break-all; }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h2>🛠️ 管理员控制台</h2>
+      <p style="font-size:12px;color:#888;">管理员强制解绑指定用户卡密</p>
+      <input type="password" id="adminPwd" placeholder="请输入管理员密码" />
+      <input type="text" id="targetKey" placeholder="请输入要解绑的卡密" />
+      <button class="btn" onclick="doAdminUnbind()">强制解绑卡密</button>
+      <div id="msg"></div>
+    </div>
+    <script>
+      async function doAdminUnbind() {
+        const pwd = document.getElementById("adminPwd").value.trim();
+        const key = document.getElementById("targetKey").value.trim();
+        const msgDiv = document.getElementById("msg");
+        if (!pwd || !key) { msgDiv.innerHTML = "<span style='color:red;'>密码和卡密均不能为空</span>"; return; }
+        msgDiv.innerHTML = "<span style='color:#aaa;'>正在处理...</span>";
+        try {
+          const res = await fetch("/api/unbind?admin_pwd=" + encodeURIComponent(pwd) + "&key=" + encodeURIComponent(key));
+          const text = await res.text();
+          if (res.ok) {
+            msgDiv.innerHTML = "<span style='color:#34c759;'>" + text + "</span>";
+          } else {
+            msgDiv.innerHTML = "<span style='color:#ff3b30;'>" + text + "</span>";
+          }
+        } catch (e) {
+          msgDiv.innerHTML = "<span style='color:red;'>网络请求失败</span>";
+        }
+      }
+    </script>
+  </body>
+  </html>`;
+  return c.html(html);
 });
 
 /* ---- 管理员后台解绑 API ---- */
@@ -233,7 +277,10 @@ app.get("/api/unbind", async (c) => {
   const adminPwd = c.req.query("admin_pwd");
   const targetKey = c.req.query("key");
 
-  if (adminPwd !== "your_admin_secret") {
+  // 读取 CF 环境变量 ADMIN_PWD，未配置时使用默认占位密码
+  const correctAdminPwd = c.env?.ADMIN_PWD || "your_admin_secret";
+
+  if (adminPwd !== correctAdminPwd) {
     return c.text("❌ 管理员密码错误", 403);
   }
   if (!targetKey) {
@@ -260,6 +307,11 @@ app.get("/api/unbind", async (c) => {
 
   await KV.put(targetKey, JSON.stringify({ name: userName, expire: expireDateStr }));
   return c.text(`✅ 用户 [${userName}] 的卡密 [${targetKey}] 设备解绑成功！当前有效至：${expireDateStr}`);
+});
+
+/* ---- API 鉴权 ---- */
+app.get("/api/check-auth", (c) => {
+  return c.json({ success: true, message: "验证通过" });
 });
 
 app.get("/", (c) => {
