@@ -198,7 +198,7 @@ app.get("/unbind", (c) => {
   return c.html(html);
 });
 
-/* ---- 用户自助解绑 API（保留卡密和有效期，仅清除设备 UUID） ---- */
+/* ---- 用户自助解绑 API ---- */
 app.get("/api/user-unbind", async (c) => {
   const targetKey = c.req.query("key");
   if (!targetKey) return c.text("❌ 请输入卡密", 400);
@@ -223,7 +223,7 @@ app.get("/api/user-unbind", async (c) => {
   return c.text(`✅ 用户 [${userName}] 的设备解绑成功！现在可以在新设备上登录了。`);
 });
 
-/* ---- 管理员操作图形页面（/admin） ---- */
+/* ---- 管理员后台控制台（/admin） ---- */
 app.get("/admin", (c) => {
   const html = `<!DOCTYPE html>
   <html lang="zh-CN">
@@ -231,39 +231,107 @@ app.get("/admin", (c) => {
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理员控制台</title>
     <style>
-      body { font-family: -apple-system, sans-serif; background: #0c0c0e; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-      .box { background: #181820; padding: 30px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-      input { width: 100%; padding: 12px; margin: 8px 0; background: #0c0c0e; border: 1px solid #2a2a38; color: #fff; border-radius: 8px; box-sizing: border-box; text-align: center; }
-      .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 12px; background: #ff9500; color: white; font-size: 14px; }
-      #msg { margin-top: 15px; font-size: 13px; word-break: break-all; }
+      body { font-family: -apple-system, sans-serif; background: #0c0c0e; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px 0; box-sizing: border-box; }
+      .box { background: #181820; padding: 24px; border-radius: 16px; width: 340px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); border: 1px solid #2a2a38; }
+      h2 { text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 20px; }
+      .section-title { font-size: 14px; font-weight: bold; color: #007aff; border-left: 3px solid #007aff; padding-left: 8px; margin: 20px 0 10px 0; text-align: left; }
+      input, select { width: 100%; padding: 10px; margin: 6px 0; background: #0c0c0e; border: 1px solid #2a2a38; color: #fff; border-radius: 8px; box-sizing: border-box; font-size: 13px; }
+      .btn { width: 100%; padding: 11px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 14px; }
+      .btn-add { background: #34c759; color: white; }
+      .btn-unbind { background: #ff9500; color: white; }
+      .btn-gen { background: #2c2c3e; color: #007aff; border: 1px solid #007aff; margin-top: 2px; padding: 6px; font-size: 12px; }
+      #msg { margin-top: 15px; font-size: 13px; word-break: break-all; text-align: center; padding: 8px; border-radius: 6px; background: #0c0c0e; display: none; }
     </style>
   </head>
   <body>
     <div class="box">
       <h2>🛠️ 管理员控制台</h2>
-      <p style="font-size:12px;color:#888;">管理员强制解绑指定用户卡密</p>
-      <input type="password" id="adminPwd" placeholder="请输入管理员密码" />
-      <input type="text" id="targetKey" placeholder="请输入要解绑的卡密" />
-      <button class="btn" onclick="doAdminUnbind()">强制解绑卡密</button>
+      
+      <div>
+        <label style="font-size: 12px; color: #aaa;">🔑 管理员密码：</label>
+        <input type="password" id="adminPwd" placeholder="请输入 ADMIN_PWD" />
+      </div>
+
+      <div class="section-title">➕ 快捷生成 / 发放卡密</div>
+      <input type="text" id="newKey" placeholder="卡密（可自定义或点击随机生成）" />
+      <button class="btn btn-gen" onclick="genRandomKey()">🎲 随机生成卡密</button>
+      <input type="text" id="newName" placeholder="用户备注/姓名（如：张三）" value="尊贵用户" />
+      <input type="date" id="newExpire" />
+      <button class="btn btn-gen" onclick="setPermanent()" style="border-color:#34c759; color:#34c759;">♾️ 设置为永久有效</button>
+      <button class="btn btn-add" onclick="doCreateKey()">生成并存入数据库</button>
+
+      <div class="section-title">🔓 强制解绑旧卡密</div>
+      <input type="text" id="targetKey" placeholder="需要强制解绑的卡密" />
+      <button class="btn btn-unbind" onclick="doAdminUnbind()">强制解绑设备</button>
+
       <div id="msg"></div>
     </div>
+
     <script>
+      // 默认设置到期时间为一年后
+      const nextYear = new Date();
+      nextYear.setFullYear(nextYear.getFullYear() + 1);
+      document.getElementById("newExpire").value = nextYear.toISOString().split("T")[0];
+
+      function showMsg(html, isSuccess) {
+        const msgDiv = document.getElementById("msg");
+        msgDiv.style.display = "block";
+        msgDiv.style.color = isSuccess ? "#34c759" : "#ff3b30";
+        msgDiv.innerHTML = html;
+      }
+
+      function genRandomKey() {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let res = "VIP";
+        for (let i = 0; i < 8; i++) {
+          res += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        document.getElementById("newKey").value = res;
+      }
+
+      function setPermanent() {
+        document.getElementById("newExpire").value = "2099-12-31";
+      }
+
+      async function doCreateKey() {
+        const pwd = document.getElementById("adminPwd").value.trim();
+        const key = document.getElementById("newKey").value.trim();
+        const name = document.getElementById("newName").value.trim() || "尊贵用户";
+        const expire = document.getElementById("newExpire").value;
+
+        if (!pwd || !key || !expire) {
+          showMsg("❌ 密码、卡密和到期时间不能为空", false);
+          return;
+        }
+
+        try {
+          const res = await fetch("/api/admin/create-key", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ adminPwd: pwd, key, name, expire })
+          });
+          const text = await res.text();
+          showMsg(text, res.ok);
+        } catch (e) {
+          showMsg("❌ 网络请求失败", false);
+        }
+      }
+
       async function doAdminUnbind() {
         const pwd = document.getElementById("adminPwd").value.trim();
         const key = document.getElementById("targetKey").value.trim();
-        const msgDiv = document.getElementById("msg");
-        if (!pwd || !key) { msgDiv.innerHTML = "<span style='color:red;'>密码和卡密均不能为空</span>"; return; }
-        msgDiv.innerHTML = "<span style='color:#aaa;'>正在处理...</span>";
+
+        if (!pwd || !key) {
+          showMsg("❌ 密码和目标卡密不能为空", false);
+          return;
+        }
+
         try {
           const res = await fetch("/api/unbind?admin_pwd=" + encodeURIComponent(pwd) + "&key=" + encodeURIComponent(key));
           const text = await res.text();
-          if (res.ok) {
-            msgDiv.innerHTML = "<span style='color:#34c759;'>" + text + "</span>";
-          } else {
-            msgDiv.innerHTML = "<span style='color:#ff3b30;'>" + text + "</span>";
-          }
+          showMsg(text, res.ok);
         } catch (e) {
-          msgDiv.innerHTML = "<span style='color:red;'>网络请求失败</span>";
+          showMsg("❌ 网络请求失败", false);
         }
       }
     </script>
@@ -272,12 +340,38 @@ app.get("/admin", (c) => {
   return c.html(html);
 });
 
+/* ---- 管理员 API：创建/新增卡密 ---- */
+app.post("/api/admin/create-key", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { adminPwd, key, name, expire } = body;
+
+    const correctAdminPwd = c.env?.ADMIN_PWD || "your_admin_secret";
+    if (adminPwd !== correctAdminPwd) {
+      return c.text("❌ 管理员密码错误", 403);
+    }
+
+    if (!key || !expire) {
+      return c.text("❌ 卡密与到期时间不能为空", 400);
+    }
+
+    const KV = c.env?.CARD_KEYS || (typeof CARD_KEYS !== "undefined" ? CARD_KEYS : null);
+    if (!KV) return c.text("❌ 未找到 KV 数据库绑定", 500);
+
+    // 存入 KV 数据库，清空旧的设备绑定数据
+    await KV.put(key, JSON.stringify({ name: name || "尊贵用户", expire: expire }));
+
+    return c.text(`✅ 卡密创建成功！\n🔑 卡密: ${key}\n👤 用户: ${name}\n⏳ 有效期至: ${expire}`);
+  } catch (e) {
+    return c.text("❌ 解析请求参数失败", 400);
+  }
+});
+
 /* ---- 管理员后台解绑 API ---- */
 app.get("/api/unbind", async (c) => {
   const adminPwd = c.req.query("admin_pwd");
   const targetKey = c.req.query("key");
 
-  // 读取 CF 环境变量 ADMIN_PWD，未配置时使用默认占位密码
   const correctAdminPwd = c.env?.ADMIN_PWD || "your_admin_secret";
 
   if (adminPwd !== correctAdminPwd) {
