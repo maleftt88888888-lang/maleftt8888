@@ -109,7 +109,7 @@ app.use("*", async (c, next) => {
     c.header("Set-Cookie", "card_key=; Path=/; Max-Age=0", { append: true });
     c.header("Set-Cookie", "device_id=; Path=/; Max-Age=0", { append: true });
     c.header("Set-Cookie", "expire_date=; Path=/; Max-Age=0", { append: true });
-    return c.html(`<h2 style='color:red;text-align:center;margin-top:20%'>⏰ 用户 [${userName}] 的卡密已于 ${expireDateStr} 到期，请联系管理员续费。</h2>`, 403);
+    return c.html(`<h2 style='color:red;text-align:center;margin-top:20%'>⏰ 用户 [${userName}] 的卡密 [${userKey}] 已于 ${expireDateStr} 到期，请联系管理员续费。</h2>`, 403);
   }
 
   // 5. 设备绑定校验 (一卡一人)
@@ -127,7 +127,7 @@ app.use("*", async (c, next) => {
 
   await next();
 
-  // 7. 注入全局浮窗（包含用户名和到期时间）
+  // 7. 注入全局浮窗（包含卡密/密钥、用户名和到期时间）
   const contentType = c.res.headers.get("content-type") || "";
   if (contentType.includes("text/html")) {
     const originalBody = await c.res.text();
@@ -136,6 +136,7 @@ app.use("*", async (c, next) => {
 
     const floatingBadge = `
       <div id="expire-badge" style="position: fixed; bottom: 12px; right: 12px; z-index: 999999; background: rgba(28,28,36,0.88); backdrop-filter: blur(8px); color: #8e8e93; font-size: 11px; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); font-family: -apple-system, sans-serif; pointer-events: none; opacity: 0.9; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        🔑 密钥：<span style="color: #ff9500; font-weight: 600; margin-right: 8px;">${userKey}</span>
         👤 用户：<span style="color: #007aff; font-weight: 600; margin-right: 8px;">${userName}</span>
         ⏳ 有效期：<span style="color: #34c759; font-weight: 600;">${displayText}</span>
       </div>
