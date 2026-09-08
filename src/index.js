@@ -12,7 +12,7 @@ app.use("*", async (c, next) => {
   const url = new URL(c.req.url);
   const pathname = url.pathname;
 
-  // 放行静态资源/配置文件请求，防止资源加载失败
+  // 放行静态资源、解绑页面及 API
   const isStaticAsset =
     pathname.endsWith(".png") ||
     pathname.endsWith(".svg") ||
@@ -23,19 +23,21 @@ app.use("*", async (c, next) => {
     pathname.endsWith(".stoverride") ||
     pathname.endsWith(".lnplugin") ||
     pathname.endsWith(".snippet") ||
+    pathname.startsWith("/unbind") ||
+    pathname.startsWith("/api/") ||
     pathname === "/tg";
 
   if (isStaticAsset) {
     return await next();
   }
 
-  // 1. 获取卡密（优先取 URL 参数 ?key=xxx，其次取 Cookie）
+  // 1. 获取卡密
   let userKey = c.req.query("key") || c.req.query("token") || c.req.query("pwd") || "";
   const cookieHeader = c.req.header("Cookie") || "";
   const cookies = Object.fromEntries(
     cookieHeader.split(";").map(item => {
       const [k, ...v] = item.trim().split("=");
-      return [k, v.join("=")];
+      return [k, (v || []).join("=")];
     })
   );
 
@@ -43,43 +45,38 @@ app.use("*", async (c, next) => {
     userKey = cookies.card_key;
   }
 
-  // 2. 未输入卡密 -> 显示卡密登录页面
+  // 2. 未输入卡密 -> 显示登录页
   if (!userKey) {
     const loginHtml = `<!DOCTYPE html>
     <html lang="zh-CN">
     <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>访问验证</title>
       <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #0b0b0f; color: #fff; }
-        .card { background: #1c1c24; padding: 32px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); text-align: center; width: 320px; box-sizing: border-box; }
-        h3 { margin-top: 0; color: #f2f2f7; font-size: 20px; }
-        p { color: #8e8e93; font-size: 13px; margin-bottom: 20px; }
-        input { width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 16px; border: 1px solid #2c2c3e; background: #0b0b0f; color: #fff; border-radius: 8px; outline: none; font-size: 14px; text-align: center; }
-        button { width: 100%; padding: 12px; background: #007aff; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
-        button:hover { background: #0062cc; }
+        body { font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #0b0b0f; color: #fff; }
+        .card { background: #1c1c24; padding: 32px; border-radius: 16px; text-align: center; width: 320px; box-sizing: border-box; }
+        input { width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 16px; border: 1px solid #2c2c3e; background: #0b0b0f; color: #fff; border-radius: 8px; text-align: center; }
+        button { width: 100%; padding: 12px; background: #007aff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        a { color: #8e8e93; font-size: 12px; text-decoration: none; display: inline-block; margin-top: 12px; }
       </style>
     </head>
     <body>
       <div class="card">
         <h3>🔑 请输入卡密</h3>
-        <p>请输入有效卡密以继续使用服务</p>
+        <p style="color:#8e8e93;font-size:13px;">请输入有效卡密以继续使用服务</p>
         <form method="GET">
           <input type="text" name="key" placeholder="请输入卡密" required />
           <button type="submit">验证并进入</button>
         </form>
+        <a href="/unbind">设备锁定了？点击前往自助解绑</a>
       </div>
     </body>
     </html>`;
     return c.html(loginHtml, 401);
   }
 
-  // 获取 KV 数据库对象
   const KV = c.env?.CARD_KEYS || (typeof CARD_KEYS !== "undefined" ? CARD_KEYS : null);
-  if (!KV) {
-    return c.text("错误：未能在环境变量中绑定 CARD_KEYS KV 数据库！", 500);
-  }
+  if (!KV) return c.text("错误：未能在环境变量中绑定 CARD_KEYS KV 数据库！", 500);
 
   // 3. 从 KV 校验卡密
   const keyDataRaw = await KV.get(userKey);
@@ -100,34 +97,35 @@ app.use("*", async (c, next) => {
     } catch (e) {}
   }
 
-  // 4. 到期时间校验（自动转换单数月份日期为标准 YYYY-MM-DD，使用 UTC+8 当日 23:59:59）
+  // 4. 到期时间校验
   const formattedExpireStr = expireDateStr.replace(/-(\d)(?=-|$)/g, '-0$1');
   const expireTime = new Date(`${formattedExpireStr}T23:59:59+08:00`).getTime();
 
   if (isNaN(expireTime) || Date.now() > expireTime) {
-    // 强制清除 Cookie，防止循环通行
     c.header("Set-Cookie", "card_key=; Path=/; Max-Age=0", { append: true });
-    c.header("Set-Cookie", "device_id=; Path=/; Max-Age=0", { append: true });
-    c.header("Set-Cookie", "expire_date=; Path=/; Max-Age=0", { append: true });
-    return c.html(`<h2 style='color:red;text-align:center;margin-top:20%'>⏰ 用户 [${userName}] 的卡密 [${userKey}] 已于 ${expireDateStr} 到期，请联系管理员续费。</h2>`, 403);
+    return c.html(`<h2 style='color:red;text-align:center;margin-top:20%'>⏰ 用户 [${userName}] 的卡密已于 ${expireDateStr} 到期。</h2>`, 403);
   }
 
-  // 5. 设备绑定校验 (一卡一人)
+  // 5. 设备绑定校验
   let currentDeviceId = cookies.device_id || crypto.randomUUID();
   if (!boundDeviceId) {
     await KV.put(userKey, JSON.stringify({ name: userName, expire: expireDateStr, deviceId: currentDeviceId }));
   } else if (boundDeviceId !== currentDeviceId) {
-    return c.html("<h2 style='color:orange;text-align:center;margin-top:20%'>⚠️ 提示：该卡密已被其他设备绑定，无法在第二台设备上使用！</h2>", 403);
+    return c.html(`<div style='text-align:center;margin-top:20%;color:#fff;font-family:sans-serif;'>
+      <h2 style='color:orange;'>⚠️ 该卡密已被其他设备绑定！</h2>
+      <p>如果您更换了设备，请前往解绑页面：</p>
+      <a href="/unbind" style="color:#007aff;">👉 点击进入自助解绑页面</a>
+    </div>`, 403);
   }
 
-  // 6. 验证通过：写入持久化 Cookie
+  // 6. 写入 Cookie
   c.header("Set-Cookie", `card_key=${userKey}; Path=/; Max-Age=2592000`, { append: true });
   c.header("Set-Cookie", `device_id=${currentDeviceId}; Path=/; Max-Age=2592000; HttpOnly`, { append: true });
   c.header("Set-Cookie", `expire_date=${expireDateStr}; Path=/; Max-Age=2592000`, { append: true });
 
   await next();
 
-  // 7. 注入全局浮窗（包含卡密/密钥、用户名和到期时间）
+  // 7. 注入浮窗
   const contentType = c.res.headers.get("content-type") || "";
   if (contentType.includes("text/html")) {
     const originalBody = await c.res.text();
@@ -146,12 +144,81 @@ app.use("*", async (c, next) => {
   }
 });
 
+/* ---- CF 内置：用户自助解绑页面 ---- */
+app.get("/unbind", (c) => {
+  const html = `<!DOCTYPE html>
+  <html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卡密自助解绑</title>
+    <style>
+      body { font-family: -apple-system, sans-serif; background: #0c0c0e; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+      .box { background: #181820; padding: 30px; border-radius: 16px; width: 320px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+      input { width: 100%; padding: 12px; margin: 10px 0; background: #0c0c0e; border: 1px solid #2a2a38; color: #fff; border-radius: 8px; box-sizing: border-box; text-align: center; }
+      button { width: 100%; padding: 12px; background: #34c759; border: none; color: white; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+      #msg { margin-top: 15px; font-size: 13px; word-break: break-all; }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h2>🔓 设备自助解绑</h2>
+      <p style="font-size:12px;color:#888;">更换设备或提示绑定时，输入卡密即可解绑</p>
+      <input type="text" id="cardKey" placeholder="请输入您的卡密" />
+      <button onclick="doUnbind()">一键解绑旧设备</button>
+      <div id="msg"></div>
+    </div>
+    <script>
+      async function doUnbind() {
+        const key = document.getElementById("cardKey").value.trim();
+        const msgDiv = document.getElementById("msg");
+        if (!key) { msgDiv.innerHTML = "<span style='color:red;'>请输入卡密</span>"; return; }
+        msgDiv.innerHTML = "<span style='color:#aaa;'>正在解绑中...</span>";
+        try {
+          const res = await fetch("/api/user-unbind?key=" + encodeURIComponent(key));
+          const text = await res.text();
+          msgDiv.innerHTML = res.ok ? "<span style='color:#34c759;'>" + text + "</span>" : "<span style='color:#ff3b30;'>" + text + "</span>";
+        } catch (e) {
+          msgDiv.innerHTML = "<span style='color:red;'>网络错误，解绑失败</span>";
+        }
+      }
+    </script>
+  </body>
+  </html>`;
+  return c.html(html);
+});
+
+/* ---- 用户自助解绑 API（保留卡密和有效期，仅清除设备 UUID） ---- */
+app.get("/api/user-unbind", async (c) => {
+  const targetKey = c.req.query("key");
+  if (!targetKey) return c.text("❌ 请输入卡密", 400);
+
+  const KV = c.env?.CARD_KEYS || (typeof CARD_KEYS !== "undefined" ? CARD_KEYS : null);
+  const keyDataRaw = await KV.get(targetKey);
+
+  if (!keyDataRaw) return c.text("❌ 卡密不存在或已被删除", 404);
+
+  let expireDateStr = keyDataRaw;
+  let userName = "尊贵用户";
+
+  if (keyDataRaw.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(keyDataRaw);
+      expireDateStr = parsed.expire || expireDateStr;
+      userName = parsed.name || userName;
+    } catch (e) {}
+  }
+
+  // 仅清除 deviceId
+  await KV.put(targetKey, JSON.stringify({ name: userName, expire: expireDateStr }));
+  return c.text(`✅ 用户 [${userName}] 的设备解绑成功！现在可以在新设备上登录了。`);
+});
+
 /* ---- 方案 B：卡密鉴权 API ---- */
 app.get("/api/check-auth", (c) => {
   return c.json({ success: true, message: "验证通过" });
 });
 
-/* ---- 管理员解绑 API ---- */
+/* ---- 管理员后台解绑 API ---- */
 app.get("/api/unbind", async (c) => {
   const adminPwd = c.req.query("admin_pwd");
   const targetKey = c.req.query("key");
@@ -181,7 +248,6 @@ app.get("/api/unbind", async (c) => {
     } catch (e) {}
   }
 
-  // 解绑时保留用户名和到期时间，仅清除 deviceId
   await KV.put(targetKey, JSON.stringify({ name: userName, expire: expireDateStr }));
   return c.text(`✅ 用户 [${userName}] 的卡密 [${targetKey}] 设备解绑成功！当前有效至：${expireDateStr}`);
 });
