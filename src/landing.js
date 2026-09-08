@@ -74,17 +74,6 @@ h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:li
 .toast{ position:fixed; left:50%; bottom:40px; transform:translateX(-50%) translateY(20px); background:rgba(8,10,14,.92); color:#fff; padding:11px 20px; border-radius:22px; font-size:14px; opacity:0; transition:all .25s; pointer-events:none; z-index:99; border:1px solid var(--line); }
 .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
-.modal-mask{ position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:100; }
-.modal-box{ background:var(--card); border:1px solid var(--line); border-radius:16px; width:88%; max-width:340px; padding:22px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.5); }
-.modal-box h3{ font-size:17px; font-weight:800; margin-bottom:6px; color:var(--txt); }
-.modal-box p{ font-size:12.5px; color:var(--muted); margin-bottom:16px; }
-.modal-box input{ width:100%; padding:12px; background:var(--bg); border:1px solid var(--line); border-radius:10px; color:var(--txt); font-size:15px; text-align:center; outline:none; margin-bottom:16px; }
-.modal-box input:focus{ border-color:var(--cyan); }
-.modal-btns{ display:flex; gap:10px; }
-.modal-btn{ flex:1; padding:12px; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; }
-.modal-btn.cancel{ background:var(--card2); color:var(--muted); border:1px solid var(--line); }
-.modal-btn.confirm{ background:linear-gradient(135deg,var(--cyan),var(--cyan2)); color:#022a2d; }
-
 footer{ text-align:center; font-size:11.5px; color:var(--muted); margin-top:26px; line-height:1.9; }
 footer b{ color:#8fe0e6; }
 </style>
@@ -95,48 +84,48 @@ footer b{ color:#8fe0e6; }
   <header>
     <div class="logowrap"><img class="logo" src="/icon.svg" alt="logo"></div>
     <h1>小红书ID 95975775001 🌏号LLME-love  ·可乐加糖 虚拟定位</h1>
-    <p class="synced">✅ 已同步上游：随机扰动半径 · 港澳台/百度坐标解析</p >
+    <p class="synced">✅ 已同步上游：随机扰动半径 · 港澳台/百度坐标解析</p>
   </header>
 
   <div class="ctas">
-    <button type="button" class="enter go" onclick="openModal('/picker')">🗺️ 进入选点网页</button>
+    <a href="/picker" class="enter go">🗺️ 进入选点网页</a>
   </div>
 
   <div class="divider"></div>
 
   <h2>安装模块</h2>
-  <p class="sub">选你的代理客户端，点「一键导入」直接装；或「复制」手动添加。</p >
+  <p class="sub">选你的代理客户端，点「一键导入」直接装；或「复制」手动添加。</p>
   <div class="note" style="font-size: 15px; color: #ff5b60; line-height: 1.6;">📍 支持iOS 26+ 切换后可能需重启一次设备清缓存。</div>
-  <!-- 静态 HTML 布局，不依赖 JS 拼接，绝对能显示 -->
+  
   <div id="plats">
     <!-- Surge -->
     <div class="plat">
-      <a class="big" id="btn-surge" href=" ">一键导入 Surge</a >
+      <a class="big" id="btn-surge" href="#">一键导入 Surge</a>
       <div class="line"><span class="url" id="url-surge"></span><button class="copy" onclick="doCopy('ios-location-spoofer.sgmodule', this)">复制</button></div>
     </div>
-    <!-- Shadowrocket（加密码验证） -->
+    <!-- Shadowrocket -->
     <div class="plat">
       <button class="big" type="button" onclick="openShadowrocket()">一键导入 Shadowrocket</button>
       <div class="line"><span class="url" id="url-sr"></span><button class="copy" onclick="doCopy('ios-location-spoofer.sgmodule', this)">复制</button></div>
     </div>
     <!-- Egern -->
     <div class="plat">
-      <a class="big" id="btn-egern" href="#">一键导入 Egern</a >
+      <a class="big" id="btn-egern" href="#">一键导入 Egern</a>
       <div class="line"><span class="url" id="url-egern"></span><button class="copy" onclick="doCopy('ios-location-spoofer.sgmodule', this)">复制</button></div>
     </div>
     <!-- Loon -->
     <div class="plat">
-      <a class="big" id="btn-loon" href="#">一键导入 Loon</a >
+      <a class="big" id="btn-loon" href="#">一键导入 Loon</a>
       <div class="line"><span class="url" id="url-loon"></span><button class="copy" onclick="doCopy('ios-location-spoofer.lnplugin', this)">复制</button></div>
     </div>
     <!-- Stash -->
     <div class="plat">
-      <a class="big" id="btn-stash" href="#">一键导入 Stash</a >
+      <a class="big" id="btn-stash" href="#">一键导入 Stash</a>
       <div class="line"><span class="url" id="url-stash"></span><button class="copy" onclick="doCopy('ios-location-spoofer.stoverride', this)">复制</button></div>
     </div>
     <!-- Quantumult X -->
     <div class="plat">
-      <a class="big" id="btn-qx" href="#">一键导入 Quantumult X</a >
+      <a class="big" id="btn-qx" href="#">一键导入 Quantumult X</a>
       <div class="line"><span class="url" id="url-qx"></span><button class="copy" onclick="doCopy('ios-location-spoofer.snippet', this)">复制</button></div>
       <div class="pnote">QX 没有模块面板：一键导入=添加「重写」资源(需已配资源解析器)；MITM 主机名要手动加进 设置→MITM。</div>
     </div>
@@ -159,57 +148,14 @@ footer b{ color:#8fe0e6; }
   </footer>
 </div>
 
-<div class="modal-mask" id="pwdModal">
-  <div class="modal-box">
-    <h3>🔒 身份验证</h3>
-    <p>请输入访问密码</p >
-    <input type="password" id="pwdInput" placeholder="请输入密码" autocomplete="off">
-    <div class="modal-btns">
-      <button type="button" class="modal-btn cancel" onclick="closeModal()">取消</button>
-      <button type="button" class="modal-btn confirm" onclick="submitPassword()">确认进入</button>
-    </div>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script>
-var ACCESS_PASSWORD = "445124"; 
-var targetUrl = "";
-
-function openModal(dest) {
-  targetUrl = dest;
-  document.getElementById('pwdModal').style.display = 'flex';
-  document.getElementById('pwdInput').value = '';
-  setTimeout(function(){ document.getElementById('pwdInput').focus(); }, 100);
-}
-
-function closeModal() {
-  document.getElementById('pwdModal').style.display = 'none';
-  targetUrl = "";
-}
-
-function submitPassword() {
-  var val = document.getElementById('pwdInput').value;
-  if (val === ACCESS_PASSWORD) {
-    var dest = targetUrl || "/picker";
-    closeModal();
-    window.location.href = dest;
-  } else {
-    toast("密码错误，无法操作！");
-  }
-}
-
 function openShadowrocket() {
   var origin = location.origin;
   var moduleUrl = origin + '/ios-location-spoofer.sgmodule';
-  var scheme = 'shadowrocket://install?module=' + encodeURIComponent(moduleUrl);
-  openModal(scheme);
+  window.location.href = 'shadowrocket://install?module=' + encodeURIComponent(moduleUrl);
 }
-
-document.getElementById('pwdInput').addEventListener('keyup', function(e) {
-  if (e.key === 'Enter') submitPassword();
-});
 
 function toast(m){ 
   var t=document.getElementById('toast'); 
