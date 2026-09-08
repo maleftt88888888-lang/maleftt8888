@@ -7,49 +7,120 @@ import { LOCATION_SPOOFER_B64, LOCATION_SETTINGS_B64, LOCATION_SPOOFER_QX_B64 } 
 
 const app = new Hono();
 
-/* ---- 选点页面密码拦截中间件 ---- */
-app.use("/picker", async (c, next) => {
-  // 增强版环境变量读取：兼容不同版本的 Hono 和 Cloudflare 环境对象
-  const authToken = c.env?.TOKEN || (typeof TOKEN !== "undefined" ? TOKEN : ""); 
+/* ---- 全局卡密 & 到期时间 & 单设备绑定拦截中间件 ---- */
+app.use("*", async (c, next) => {
+  const url = new URL(c.req.url);
+  const pathname = url.pathname;
 
-  // 如果后台未设置 TOKEN，则直接放行
-  if (!authToken) {
+  // 放行静态资源/配置文件请求，防止资源加载失败
+  const isStaticAsset =
+    pathname.endsWith(".png") ||
+    pathname.endsWith(".svg") ||
+    pathname.endsWith(".ico") ||
+    pathname.endsWith(".webmanifest") ||
+    pathname.endsWith(".js") ||
+    pathname.endsWith(".sgmodule") ||
+    pathname.endsWith(".stoverride") ||
+    pathname.endsWith(".lnplugin") ||
+    pathname.endsWith(".snippet") ||
+    pathname.startsWith("/api/") ||
+    pathname === "/tg";
+
+  if (isStaticAsset) {
     return await next();
   }
 
-  // 从 URL 参数获取 token 或 pwd
-  const userToken = c.req.query("token") || c.req.query("pwd") || "";
+  // 1. 获取卡密（优先取 URL 参数 ?key=xxx 或 ?token=xxx，其次取 Cookie）
+  let userKey = c.req.query("key") || c.req.query("token") || c.req.query("pwd") || "";
+  const cookieHeader = c.req.header("Cookie") || "";
+  const cookies = Object.fromEntries(
+    cookieHeader.split(";").map(item => {
+      const [k, ...v] = item.trim().split("=");
+      return [k, v.join("=")];
+    })
+  );
 
-  // 校验密码
-  if (userToken !== authToken) {
-    const html = `<!DOCTYPE html>
+  if (!userKey && cookies.card_key) {
+    userKey = cookies.card_key;
+  }
+
+  // 2. 未输入卡密 -> 显示卡密登录页面
+  if (!userKey) {
+    const loginHtml = `<!DOCTYPE html>
     <html lang="zh-CN">
     <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>需要身份验证</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>访问验证</title>
       <style>
-        body { background: #0b0b0f; color: #fff; font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #0b0b0f; color: #fff; }
+        .card { background: #1c1c24; padding: 32px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); text-align: center; width: 320px; box-sizing: border-box; }
+        h3 { margin-top: 0; color: #f2f2f7; font-size: 20px; }
+        p { color: #8e8e93; font-size: 13px; margin-bottom: 20px; }
+        input { width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 16px; border: 1px solid #2c2c3e; background: #0b0b0f; color: #fff; border-radius: 8px; outline: none; font-size: 14px; text-align: center; }
+        button { width: 100%; padding: 12px; background: #007aff; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
+        button:hover { background: #0062cc; }
       </style>
     </head>
     <body>
-      <script>
-        const pwd = prompt("请输入访问密码以进入选点网页：");
-        if (pwd) {
-          const u = new URL(window.location.href);
-          u.searchParams.set("token", pwd);
-          window.location.href = u.toString();
-        } else {
-          alert("必须输入有效密码才能访问！");
-          window.location.href = "/";
-        }
-      </script>
+      <div class="card">
+        <h3>🔑 请输入卡密</h3>
+        <p>请输入有效卡密以继续使用服务</p>
+        <form method="GET">
+          <input type="text" name="key" placeholder="请输入卡密" required />
+          <button type="submit">验证并进入</button>
+        </form>
+      </div>
     </body>
     </html>`;
-    return c.html(html, 401);
+    return c.html(loginHtml, 401);
   }
 
+  // 获取 KV 数据库对象
+  const KV = c.env?.CARD_KEYS || (typeof CARD_KEYS !== "undefined" ? CARD_KEYS : null);
+  if (!KV) {
+    return c.text("错误：未能在环境变量中绑定 CARD_KEYS KV 数据库！", 500);
+  }
+
+  // 3. 从 KV 校验卡密
+  const keyDataRaw = await KV.get(userKey);
+  if (!keyDataRaw) {
+    return c.html("<h2 style='color:red;text-align:center;margin-top:20%'>❌ 错误：卡密无效或不存在！</h2>", 403);
+  }
+
+  let expireDateStr = keyDataRaw;
+  let boundDeviceId = null;
+
+  if (keyDataRaw.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(keyDataRaw);
+      expireDateStr = parsed.expire;
+      boundDeviceId = parsed.deviceId;
+    } catch (e) {}
+  }
+
+  // 4. 到期时间校验
+  const expireTime = new Date(expireDateStr + 'T23:59:59Z').getTime();
+  if (Date.now() > expireTime) {
+    return c.html(`<h2 style='color:red;text-align:center;margin-top:20%'>⏰ 您的卡密已于 ${expireDateStr} 到期，请联系管理员续费。</h2>`, 403);
+  }
+
+  // 5. 设备绑定校验 (一卡一人)
+  let currentDeviceId = cookies.device_id || crypto.randomUUID();
+  if (!boundDeviceId) {
+    // 首次使用卡密，绑定当前设备
+    await KV.put(userKey, JSON.stringify({ expire: expireDateStr, deviceId: currentDeviceId }));
+  } else if (boundDeviceId !== currentDeviceId) {
+    // 第二台设备拦截
+    return c.html("<h2 style='color:orange;text-align:center;margin-top:20%'>⚠️ 提示：该卡密已被其他设备绑定，无法在第二台设备上使用！</h2>", 403);
+  }
+
+  // 6. 验证通过，放行请求并写入持久化 Cookie
   await next();
+
+  // 30 天免登录 Cookie
+  c.header("Set-Cookie", `card_key=${userKey}; Path=/; Max-Age=2592000; HttpOnly`, { append: true });
+  c.header("Set-Cookie", `device_id=${currentDeviceId}; Path=/; Max-Age=2592000; HttpOnly`, { append: true });
 });
 
 app.get("/", (c) => {
@@ -245,7 +316,6 @@ export default {
       }));
     } catch (e) {}
     
-    // 关键修正：确保把 env 传递给 Hono 路由
     return app.fetch(request, env, ctx);
   },
 };
