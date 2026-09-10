@@ -1,14 +1,28 @@
 import { Hono } from "hono";
 import { serveStatic } from "hono/cloudflare-workers";
 import { parseCoords, toWgs84, gcj02ToWgs84, round6 } from "./parse.js";
+import { renderLanding } from "./landing.js"; // 恢复你原有的前端页面渲染模块
 
 const app = new Hono();
 
-// 地理位置解析 API
-app.get("/api/parse", async (c) => {
-  // 统一允许跨域，防止前端无法捕获错误信息
+// 全局全局跨域支持，确保 API 和错误信息均可顺利跨域返回
+app.use("*", async (c, next) => {
+  await next();
   c.header("Access-Control-Allow-Origin", "*");
+});
 
+// 1. 恢复根路径前端页面渲染，避免首页 500 崩溃
+app.get("/", (c) => {
+  try {
+    if (typeof renderLanding === "function") {
+      return renderLanding(c);
+    }
+  } catch (e) {}
+  return c.text("API Service Running");
+});
+
+// 2. 地理位置解析 API (融合无损优化版)
+app.get("/api/parse", async (c) => {
   // 同时兼容 url 与 u 参数
   const raw = c.req.query("url") || c.req.query("u") || "";
   const cs = (c.req.query("cs") || "").toLowerCase();
@@ -46,7 +60,13 @@ app.get("/api/parse", async (c) => {
   }
 });
 
-// 静态资源托管 (根据实际使用环境配置，例如 Cloudflare Pages / Workers)
-app.use("/*", serveStatic({ root: "./" }));
+// 3. 静态资源兜底 (容错处理，防止找不到资源时报错 500)
+app.use("/*", async (c, next) => {
+  try {
+    return await serveStatic({ root: "./" })(c, next);
+  } catch (e) {
+    return c.text("Not Found", 404);
+  }
+});
 
 export default app;
