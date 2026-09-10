@@ -1,6 +1,10 @@
 // 坐标解析: 接受地图链接(苹果地图 / 高德 / 百度, 含短链), 抠出经纬度+名称。
 // 高德为 GCJ-02; 苹果地图在中国大陆同为 GCJ-02。两者都转 WGS84 再喂给 wloc;
 // gcj02ToWgs84 内含 out_of_china 判断, 境外坐标原样返回(无操作)。
+//
+// 本文件与上游 Yu9191/wloc v1.1 (worker/src/parse.js) 保持同步：inRange 值域校验、
+// 高德 position=/lnglat= 经纬度反序、港澳台(苹果/Google 直发 WGS84 不做 GCJ 反算)、
+// 百度 BD09MC 正文解析、以及 fetch 的 SSRF/资源上限加固。
 
 export function safeDecode(s) {
   if (!s) return "";
@@ -11,6 +15,23 @@ export function safeDecode(s) {
   }
 }
 
+// 从一段字符串里提取经纬度+名称。兼容:
+//  苹果地图 coordinate=/ll=/sll=纬度,经度  (名称在 name=...)
+//  高德 ?p=POIID,纬度,经度,名称,城市  (逗号或 %2C)
+//  高德 ?q=纬度,经度,名称           (新版分享链, 逗号或 %2C)
+//  纯文本 纬度,经度
+//  高德 URI ?lnglat=/?position=经度,纬度  (与上面几条顺序相反)
+// opts.allowBare=false 时不启用"两个裸小数"兜底。扫描页面正文必须关掉它:
+// 正文里任何一对小数都会命中(百度页面的 "view_dir":"-0.8477,0.0000" 就是如此),
+// 结果是静默返回一个错误坐标 —— 比解析失败危险得多。
+export function extractFromString(s, opts) {
+  const hit = extractRaw(s, opts);
+  // 值域是最后一道闸。上面的兜底规则不带语义, 匹配到什么就返回什么, 经纬颠倒
+  // (lat=113.9)或纯粹的垃圾数字都能一路走到调用方。这里拦掉的是"解析成了错的",
+  // 它比"解析失败"危险得多 —— 后者会提示用户, 前者会把设备定位挪到别处。
+  return hit && inRange(hit.lat, hit.lon) ? hit : null;
+}
+
 // 纬度绝对值 <= 90, 经度 <= 180; NaN / Infinity 一并挡掉。
 export function inRange(lat, lon) {
   return (
@@ -18,87 +39,73 @@ export function inRange(lat, lon) {
   );
 }
 
-// 从一段字符串里提取经纬度+名称
-export function extractFromString(s, opts) {
-  const hit = extractRaw(s, opts);
-  return hit && inRange(hit.lat, hit.lon) ? hit : null;
-}
-
 function extractRaw(s, opts) {
   if (!s) return null;
   const allowBare = !opts || opts.allowBare !== false;
   const str = String(s);
   let m;
-
-  // 苹果地图 coordinate=/ll=/sll=纬度,经度
+  // 前缀 (?:^|[?&]) 是必需的: 无锚定时 "ll=" 会匹配任何以 ll 结尾的参数名,
+  // 例如 scroll=1.5,2.5 / pull=... 都会被当成坐标。
   m = str.match(/(?:^|[?&])(?:coordinate|ll|sll)=(-?\d{1,3}\.\d+)(?:,|%2C)(-?\d{1,3}\.\d+)/i);
   if (m) return { lat: +m[1], lon: +m[2], name: queryName(str), src: "apple" };
-
-  // Google: !3d<lat>!4d<lon>
+  // Google: !3d<lat>!4d<lon> 是地点针脚的真实坐标, 必须优先于 @lat,lon —— 后者是
+  // 相机视口中心, 与缩放级别绑定, 可以离目标十几公里。
   m = str.match(/!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/);
   if (m) return { lat: +m[1], lon: +m[2], name: googleName(str), src: "google" };
-
-  // 高德 ?p=POIID,纬度,经度,名称,城市
   m = str.match(
     /[?&]p=[^,&%]*(?:,|%2C)(-?\d{1,3}\.\d+)(?:,|%2C)(-?\d{1,3}\.\d+)(?:(?:,|%2C)((?:(?!,|%2C|&).)+))?/i
   );
   if (m) return { lat: +m[1], lon: +m[2], name: m[3] ? safeDecode(m[3]) : "", src: "amap" };
-
-  // 高德 ?q=纬度,经度,名称 (带有经纬度防倒置容错)
   m = str.match(
     /[?&]q=(-?\d{1,3}\.\d+)(?:,|%2C)(-?\d{1,3}\.\d+)(?:(?:,|%2C)((?:(?!,|%2C|&).)+))?/i
   );
-  if (m) {
-    let lat = +m[1], lon = +m[2];
-    if (Math.abs(lat) > 90 && Math.abs(lon) <= 90) [lat, lon] = [lon, lat];
-    return { lat, lon, name: m[3] ? safeDecode(m[3]) : "", src: "amap" };
-  }
-
-  // 高德 URI API 的 lnglat= / position= 是「经度,纬度」序
+  if (m) return { lat: +m[1], lon: +m[2], name: m[3] ? safeDecode(m[3]) : "", src: "amap" };
+  // 高德 URI API 的 lnglat= / position= 是「经度,纬度」序, 与上面所有规则相反。
+  // 不要照搬旧页面里的 location=/center= 规则: 那条也按 lon,lat 解, 但百度的
+  // location= 实际是 lat,lng, 搬过来会把百度链接解颠倒。宁可少认一种也不要认错。
   m = str.match(/(?:^|[?&])(?:lnglat|position)=(-?\d{1,3}\.\d+)(?:,|%2C)(-?\d{1,3}\.\d+)/i);
   if (m) return { lat: +m[2], lon: +m[1], name: queryName(str), src: "amap" };
-
-  // 百度网页版路径 BD09MC 米制坐标: /poi/名称/@12709535.375,2529761.45,19z
+  // 百度网页版把 BD09MC 米制坐标写进路径: /poi/名称/@12709535.375,2529761.45,19z
+  // 位数(6~9)本身就把它和经纬度形式的 @ 区分开了。
+  // 这是港澳台百度链接在服务端唯一能拿到坐标的形式 —— 那些地区的分享短链展开后
+  // 正文里没有坐标, 得由页面脚本带反爬令牌去查 detailConInfo, Worker 复现不了。
   m = str.match(/baidu\.com\/[^\s]*?@(-?\d{6,9}(?:\.\d+)?)(?:,|%2C)(-?\d{6,9}(?:\.\d+)?)/i);
   if (m) {
     const bd = bd09mcToBd09(+m[1], +m[2]);
     if (bd) return { lat: bd.lat, lon: bd.lon, name: baiduPathName(str), src: "baidu" };
   }
-
-  // Google 视口中心中心坐标
+  // 只有在没有针脚坐标时才退而求其次用视口中心。
   m = str.match(/\/maps\/[^\s]*@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);
   if (m) return { lat: +m[1], lon: +m[2], name: googleName(str), src: "google" };
-
-  // 纯裸坐标解析（兼容逗号、%2C 以及空格分隔）
   if (allowBare) {
-    m = str.match(/(-?\d{1,3}\.\d{4,})\s*(?:,|%2C|\s)\s*(-?\d{1,3}\.\d{4,})/);
-    if (m) {
-      let lat = +m[1], lon = +m[2];
-      // 容错处理：若误将经度当作纬度输入，自动修正
-      if (Math.abs(lat) > 90 && Math.abs(lon) <= 90) {
-        [lat, lon] = [lon, lat];
-      }
-      return { lat, lon, name: "", src: "text" };
-    }
+    m = str.match(/(-?\d{1,3}\.\d{4,})\s*(?:,|%2C)\s*(-?\d{1,3}\.\d{4,})/);
+    if (m) return { lat: +m[1], lon: +m[2], name: "", src: "text" };
   }
   return null;
 }
 
+// 查询串里的 ?name=/ &name= —— 苹果地图和高德 URI 都用这个键。
 function queryName(str) {
   const m = str.match(/[?&]name=([^&]+)/i);
   return m ? safeDecode(m[1]) : "";
 }
 
+// 百度网页版的地名在路径里: /poi/Apple台北101/@...
 function baiduPathName(str) {
   const m = str.match(/\/poi\/([^/@?]+)/);
   return m ? safeDecode(m[1]).trim() : "";
 }
 
+// Google 的地名在路径里: /maps/place/Apple+Park/@...
 function googleName(str) {
   const m = str.match(/\/maps\/place\/([^/@?]+)/);
   return m ? safeDecode(m[1]).replace(/\+/g, " ").trim() : "";
 }
 
+// /api/parse 会去 fetch 调用方给的任意 URL。Workers 出网到不了内网, 所以经典的
+// SSRF(打内网/元数据服务)基本不成立, 剩下的风险是资源耗尽 —— 一个永不结束的响应
+// 能把子请求挂死, 一个几百 MB 的响应能把 128 MB 的 Worker 内存打爆。下面两个常量
+// 和 isFetchable() 挡的就是这个, 而不是"防止访问某些站点"。
 const FETCH_TIMEOUT_MS = 8000;
 const MAX_BODY_BYTES = 512 * 1024;
 
@@ -112,10 +119,11 @@ function isFetchable(u) {
   if (url.protocol !== "http:" && url.protocol !== "https:") return false;
   const h = url.hostname.toLowerCase();
   if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal")) return false;
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) return false; // 拦截 IPv4 字面量地址防 SSRF
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h) || h.startsWith("[")) return false; // IP 字面量
   return true;
 }
 
+// 只读前 MAX_BODY_BYTES, 读满就掐掉连接。坐标总在页面靠前的位置, 读全文没有收益。
 async function readCapped(resp) {
   if (!resp.body || typeof resp.body.getReader !== "function") {
     return (await resp.text()).slice(0, MAX_BODY_BYTES);
@@ -149,27 +157,25 @@ function isBaiduHost(u) {
   }
 }
 
-// 核心主函数（已增强：支持高德短链完整跳转追踪，并支持纯文本地名自动搜索兜底）
+// 接受原文(可能含中文地名+链接), 抠出 URL, 必要时跟随重定向展开短链, 提取坐标。
 export async function parseCoords(raw) {
   const text = String(raw || "").trim();
-  if (!text) throw new Error("缺少输入的解析内容");
+  if (!text) throw new Error("空输入");
 
   const urlMatch = text.match(/https?:\/\/[^\s'"<>]+/i);
   let target = urlMatch ? urlMatch[0] : text;
 
-  // 1. 先尝试直接从输入文本/URL 中正则提取（针对长链接或直接复制的坐标）
   let hit = extractFromString(target);
   if (hit) return hit;
 
-  // 2. 如果包含网络链接（如高德短链 surl.amap.com），使用 redirect: "follow" 自动追踪多级跳转
   if (urlMatch) {
     let cur = target;
-    if (isFetchable(cur)) {
+    for (let i = 0; i < 5; i++) {
+      if (!isFetchable(cur)) break;
       let resp;
       try {
         resp = await fetch(cur, {
-          method: "GET",
-          redirect: "follow", // 关键修改：自动跟随所有跳转，直达最终页面
+          redirect: "manual",
           signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
           headers: {
             "user-agent":
@@ -179,59 +185,8 @@ export async function parseCoords(raw) {
           },
         });
       } catch (e) {
-        throw new Error("地图链接网络请求失败或超时，请检查链接是否有效");
+        break;
       }
-
-      // 优先从跳转后的最终 URL 中提取经纬度
-      hit = extractFromString(resp.url);
-      if (hit) return hit;
-
-      // 检查头部 location
-      const loc = resp.headers.get("location");
-      if (loc) {
-        hit = extractFromString(loc);
-        if (hit) return hit;
-      }
-
-      // 读取网页正文提取
-      try {
-        const body = await readCapped(resp);
-        hit = extractFromString(body, { allowBare: false });
-        if (hit) return hit;
-
-        if (isBaiduHost(resp.url) || isBaiduHost(cur)) {
-          hit = extractBaiduFromBody(body);
-          if (hit) return hit;
-        }
-      } catch (e) {}
-    }
-  } else {
-    // 3. 如果既不是链接、也不是坐标，而是纯文本地名（如“台州市黄岩区高桥中心小学”），尝试通过后端搜索 API 兜底
-    try {
-      const searchRes = await fetch(`/api/search?q=${encodeURIComponent(text)}`);
-      const result = await searchRes.json();
-      if (result.success && result.data && result.data.length > 0) {
-        const item = result.data[0];
-        return {
-          lat: parseFloat(item.lat),
-          lon: parseFloat(item.lon),
-          name: item.display_name ? item.display_name.split(',')[0] : text,
-          src: "search"
-        };
-      }
-    } catch (e) {}
-  }
-
-  // 4. 百度特定提示优化
-  if (urlMatch && isBaiduHost(target)) {
-    throw new Error(
-      "该百度地图链接需浏览器脚本渲染后才能获取坐标。请在浏览器中打开该链接，待地址栏变为 map.baidu.com/poi/名称/@数字,数字 形式后，复制完整 URL 重新解析。"
-    );
-  }
-
-  throw new Error("未能从提供的链接或文本中识别出有效的经纬度信息");
-}
-
       const loc = resp.headers.get("location");
       if (loc) {
         hit = extractFromString(loc);
@@ -241,15 +196,13 @@ export async function parseCoords(raw) {
         if (hit) return hit;
         continue;
       }
-
       hit = extractFromString(resp.url);
       if (hit) return hit;
-
       try {
         const body = await readCapped(resp);
         hit = extractFromString(body, { allowBare: false });
         if (hit) return hit;
-
+        // 百度分享链展开后 URL 里只有 uid, 坐标以 BD09MC 墨卡托米制藏在正文中。
         if (isBaiduHost(cur)) {
           hit = extractBaiduFromBody(body);
           if (hit) return hit;
@@ -258,15 +211,16 @@ export async function parseCoords(raw) {
       break;
     }
   }
-
-  // 3. 百度特定提示优化
+  // 百度对大陆 POI 会把坐标直出在移动版页面里, 港澳台的则不会 —— 那边要靠页面
+  // 脚本带 auth/seckey 反爬令牌去查 detailConInfo, 服务端无法复现。与其只说一句
+  // "解析不了", 不如告诉用户那条确实走得通的路。
   if (urlMatch && isBaiduHost(target)) {
     throw new Error(
-      "该百度地图链接需浏览器脚本渲染后才能获取坐标。请在浏览器中打开该链接，待地址栏变为 map.baidu.com/poi/名称/@数字,数字 形式后，复制完整 URL 重新解析。"
+      "百度这条链接的坐标要靠网页脚本才能取到(港澳台的 POI 多为此类)。" +
+        "请在浏览器打开该链接, 等地址栏变成 map.baidu.com/poi/名称/@数字,数字,19z 之后, 复制整条地址再粘贴。"
     );
   }
-
-  throw new Error("未能从提供的链接或文本中识别出有效的经纬度信息");
+  throw new Error("未能从链接中解析出经纬度");
 }
 
 export function round6(n) {
@@ -274,6 +228,8 @@ export function round6(n) {
 }
 
 // ---- 百度: BD09MC(墨卡托米制) -> BD09(经纬度) ----
+// 百度用的不是标准 Web 墨卡托, 而是按纬度分 6 段的高次多项式拟合。
+// 用标准墨卡托逆算会差约 10 公里, 必须用下面这张系数表。
 const MCBAND = [12890594.86, 8362377.87, 5591021, 3481989.83, 1678043.12, 0];
 const MC2LL = [
   [1.410526172116255e-8, 8.98305509648872e-6, -1.9939833816331, 200.9824383106796, -187.2403703815547, 91.6087516669843, -23.38765649603339, 2.57121317296198, -0.03801003308653, 1.73379812e7],
@@ -299,7 +255,7 @@ export function bd09mcToBd09(x, y) {
   return { lat, lon };
 }
 
-// BD09 -> GCJ02
+// BD09 -> GCJ02 (百度在 GCJ 之上再加了一层自有偏移)
 const X_PI = (Math.PI * 3000) / 180;
 export function bd09ToGcj02(lat, lon) {
   const x = lon - 0.0065, y = lat - 0.006;
@@ -308,7 +264,24 @@ export function bd09ToGcj02(lat, lon) {
   return { lat: z * Math.sin(t), lon: z * Math.cos(t) };
 }
 
-// 港澳台坐标判定
+// ---- 港澳台: 苹果/Google 在这三地发的是 WGS84 ----
+//
+// GCJ-02 的偏移只施加于中国大陆, 但 gcjOutOfChina 是个粗矩形, 把港澳台整个圈在
+// 里面, 于是对本来就是 WGS84 的坐标白做一次反算, 实测偏约 570~600 米。
+//
+// 关键在于: 这不是一个纯地理判断, 必须按来源区分。高德在香港的瓦片实测仍是
+// GCJ-02(把卫星图和高德图放在同一坐标上比对, 差 596 米, 与大陆同量级), 百度的
+// BD-09 建在 GCJ 之上同理。所以只有 apple/google 才在港澳台跳过换算。
+//
+// 实测基准(链接原始值即真值, 与设备 GPS 逐位相同):
+//   香港 ifc mall       22.284774, 114.159437
+//   澳门 Galaxy Macau   22.148148, 113.555399
+//   台北 101            25.033626, 121.564215
+
+// 香港必须用多边形而不是矩形: 任何包住香港的矩形都会把深圳南山/福田一起圈进去,
+// 而深圳正是本项目最常用的坐标区域。北界沿深圳河与深圳湾, 自西向东抬升。
+// 这条线是近似的, 口岸一带(罗湖/落马洲/沙头角)两侧约 1 公里内可能判错 ——
+// 那些地方本身就骑在边界上, 无法用几个折点分清。
 const HK_POLY = [
   [113.8, 22.1],
   [113.8, 22.43],
@@ -323,6 +296,7 @@ const HK_POLY = [
   [114.5, 22.1],
 ];
 
+// 射线法。poly 的点是 [经度, 纬度]。
 function pointInPoly(lat, lon, poly) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -333,19 +307,28 @@ function pointInPoly(lat, lon, poly) {
   return inside;
 }
 
+// 澳门与珠海拱北只隔一道关闸(约 250 米), 矩形分不开; 北界取关闸纬度, 误判范围
+// 限于口岸那一小片。
 function inMacau(lat, lon) {
   return lat >= 22.1 && lat <= 22.215 && lon >= 113.525 && lon <= 113.605;
 }
 
+// 台湾本岛 + 澎湖。金门/马祖紧贴厦门与福州, 用矩形圈会误伤大陆, 故不含。
 function inTaiwan(lat, lon) {
   return lat >= 21.85 && lat <= 25.35 && lon >= 119.3 && lon <= 122.1;
 }
 
+// 该来源在该位置是否直接提供 WGS84(即不需要做 GCJ 反算)。
 export function usesWgs84Locally(lat, lon, src) {
   if (src !== "apple" && src !== "google") return false;
   return inMacau(lat, lon) || inTaiwan(lat, lon) || pointInPoly(lat, lon, HK_POLY);
 }
 
+// 按来源把坐标统一换算到 WGS84。text 源(用户直接输入的裸坐标)视为已是 WGS84。
+//
+// 注意换算与分派的分工: gcj02ToWgs84 回答"这两个坐标系在此处相差多少", 这个关系
+// 在香港同样成立(高德就在用), 所以港澳台的例外不能塞进那个函数里 —— 否则就没法
+// 让苹果走一条路、高德走另一条路了。
 export function toWgs84(lat, lon, src) {
   if (src === "baidu") {
     const g = bd09ToGcj02(lat, lon);
@@ -358,18 +341,15 @@ export function toWgs84(lat, lon, src) {
   return { lat, lon };
 }
 
-// 百度页面正文提取：增加严格的 BD09MC 墨卡托坐标值域校验
+// 百度页面正文里的 "x":"12686385.66","y":"2560876.53" —— BD09MC 米制。
+// 量级校验用于把它和页面里其它同名字段(像素坐标等)区分开。
 export function extractBaiduFromBody(body) {
   const m = String(body).match(/"x"\s*:\s*"?(-?\d+(?:\.\d+)?)"?\s*,\s*"y"\s*:\s*"?(-?\d+(?:\.\d+)?)"?/);
   if (!m) return null;
   const x = +m[1], y = +m[2];
-
-  // 严格值域校验：排除 1920x1080 像素、大数字 POI ID 等干扰项
-  const absX = Math.abs(x), absY = Math.abs(y);
-  if (absX < 7e6 || absX > 1.6e7 || absY < 1e6 || absY > 7e6) return null;
-
+  if (!(Math.abs(x) > 1e5 && Math.abs(y) > 1e5)) return null;
   const bd = bd09mcToBd09(x, y);
-  if (!bd || !inRange(bd.lat, bd.lon)) return null;
+  if (!bd || Math.abs(bd.lat) > 90 || Math.abs(bd.lon) > 180) return null;
   const nm = String(body).match(/<title>[^<]*?【([^】]{1,40})】/);
   return { lat: bd.lat, lon: bd.lon, name: nm ? nm[1] : "", src: "baidu" };
 }
@@ -397,6 +377,7 @@ function gcjDeltaLon(x, y) {
   return r;
 }
 
+// WGS84 -> GCJ-02 (正向偏移), 与高德/苹果中国所用偏移一致。
 export function wgs84ToGcj02(lat, lon) {
   if (gcjOutOfChina(lon, lat)) return { lat, lon };
   let dLat = gcjDeltaLat(lon - 105.0, lat - 35.0);
@@ -410,6 +391,9 @@ export function wgs84ToGcj02(lat, lon) {
   return { lat: lat + dLat, lon: lon + dLon };
 }
 
+// GCJ-02 -> WGS84 (迭代反算, 亚米级)。
+// 单程反算在偏移梯度大的地区会残留 1~2m, 这里用不动点迭代收敛到 <0.1m,
+// 与高德自身的 WGS84->GCJ 逆运算严格对齐, 消除回看时的残差。
 export function gcj02ToWgs84(lat, lon) {
   if (gcjOutOfChina(lon, lat)) return { lat, lon };
   let wgsLat = lat;
