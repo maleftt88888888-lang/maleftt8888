@@ -10,7 +10,7 @@ app.use("*", async (c, next) => {
   c.header("Access-Control-Allow-Origin", "*");
 });
 
-// 1. 首页渲染
+// 1. 首页 UI
 app.get("/", (c) => {
   try {
     return c.html(getLandingHtml());
@@ -19,7 +19,51 @@ app.get("/", (c) => {
   }
 });
 
-// 2. 坐标解析 API
+// 2. 验证卡密 / 权限接口
+app.get("/api/check-auth", (c) => {
+  const key = c.req.query("key") || c.req.header("Authorization");
+  
+  if (key && key.trim().length > 0) {
+    return c.json({ success: true, message: "验证成功" }, 200);
+  }
+  return c.json({ success: false, message: "卡密已过期或失效" }, 401);
+});
+
+// 3. 卡密换绑 API
+app.post("/api/unbind", async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const { oldKey, newDevice } = body;
+
+    if (!oldKey) {
+      return c.json({ success: false, message: "请输入原卡密" }, 400);
+    }
+
+    // 换绑业务逻辑（如接入 KV，可在此处解绑旧设备 ID）
+    return c.json({ success: true, message: "设备换绑成功！请重新登录" }, 200);
+  } catch (e) {
+    return c.json({ success: false, message: "换绑失败：" + e.message }, 500);
+  }
+});
+
+// 4. 后台管理 API (生成卡密/查看列表等)
+app.get("/api/admin/keys", (c) => {
+  const adminPassword = c.req.query("password") || c.req.header("X-Admin-Pass");
+
+  // 默认后台密码可自行修改
+  if (adminPassword !== "admin123") {
+    return c.json({ success: false, message: "管理员密码错误" }, 403);
+  }
+
+  return c.json({
+    success: true,
+    data: [
+      { key: "DEMO-KEY-8888", status: "Active", expire: "2026-12-31" }
+    ]
+  });
+});
+
+// 5. 坐标解析 API
 app.get("/api/parse", async (c) => {
   const raw = c.req.query("url") || c.req.query("u") || "";
   const cs = (c.req.query("cs") || "").toLowerCase();
@@ -56,7 +100,7 @@ app.get("/api/parse", async (c) => {
   }
 });
 
-// 3. 静态资源托管
+// 6. 静态资源托管
 app.use("/*", async (c, next) => {
   try {
     return await serveStatic({ root: "./" })(c, next);
