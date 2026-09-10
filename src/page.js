@@ -169,7 +169,6 @@ body {
 <body>
 <div class="topbar">
   <a class="back" href="/">← 主页</a>
-  <a class="tg" href="https://maleftt8888.maleftt88888888.workers.dev/" target="_blank" rel="noopener">✈️ </a>
 </div>
 
   <div class="rt">⚠️ 小紅書獨家ID 95975775001</div>
