@@ -149,7 +149,7 @@ function isBaiduHost(u) {
   }
 }
 
-// 核心主函数
+// 核心主函数（已增强：支持高德短链完整跳转追踪，并支持纯文本地名自动搜索兜底）
 export async function parseCoords(raw) {
   const text = String(raw || "").trim();
   if (!text) throw new Error("缺少输入的解析内容");
@@ -157,19 +157,19 @@ export async function parseCoords(raw) {
   const urlMatch = text.match(/https?:\/\/[^\s'"<>]+/i);
   let target = urlMatch ? urlMatch[0] : text;
 
-  // 1. 先尝试直接从输入文本/URL 中正则提取
+  // 1. 先尝试直接从输入文本/URL 中正则提取（针对长链接或直接复制的坐标）
   let hit = extractFromString(target);
   if (hit) return hit;
 
-  // 2. 如果包含网络链接，尝试跟随重定向和读取正文
+  // 2. 如果包含网络链接（如高德短链 surl.amap.com），使用 redirect: "follow" 自动追踪多级跳转
   if (urlMatch) {
     let cur = target;
-    for (let i = 0; i < 5; i++) {
-      if (!isFetchable(cur)) break;
+    if (isFetchable(cur)) {
       let resp;
       try {
         resp = await fetch(cur, {
-          redirect: "manual",
+          method: "GET",
+          redirect: "follow", // 关键修改：自动跟随所有跳转，直达最终页面
           signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
           headers: {
             "user-agent":
@@ -181,6 +181,56 @@ export async function parseCoords(raw) {
       } catch (e) {
         throw new Error("地图链接网络请求失败或超时，请检查链接是否有效");
       }
+
+      // 优先从跳转后的最终 URL 中提取经纬度
+      hit = extractFromString(resp.url);
+      if (hit) return hit;
+
+      // 检查头部 location
+      const loc = resp.headers.get("location");
+      if (loc) {
+        hit = extractFromString(loc);
+        if (hit) return hit;
+      }
+
+      // 读取网页正文提取
+      try {
+        const body = await readCapped(resp);
+        hit = extractFromString(body, { allowBare: false });
+        if (hit) return hit;
+
+        if (isBaiduHost(resp.url) || isBaiduHost(cur)) {
+          hit = extractBaiduFromBody(body);
+          if (hit) return hit;
+        }
+      } catch (e) {}
+    }
+  } else {
+    // 3. 如果既不是链接、也不是坐标，而是纯文本地名（如“台州市黄岩区高桥中心小学”），尝试通过后端搜索 API 兜底
+    try {
+      const searchRes = await fetch(`/api/search?q=${encodeURIComponent(text)}`);
+      const result = await searchRes.json();
+      if (result.success && result.data && result.data.length > 0) {
+        const item = result.data[0];
+        return {
+          lat: parseFloat(item.lat),
+          lon: parseFloat(item.lon),
+          name: item.display_name ? item.display_name.split(',')[0] : text,
+          src: "search"
+        };
+      }
+    } catch (e) {}
+  }
+
+  // 4. 百度特定提示优化
+  if (urlMatch && isBaiduHost(target)) {
+    throw new Error(
+      "该百度地图链接需浏览器脚本渲染后才能获取坐标。请在浏览器中打开该链接，待地址栏变为 map.baidu.com/poi/名称/@数字,数字 形式后，复制完整 URL 重新解析。"
+    );
+  }
+
+  throw new Error("未能从提供的链接或文本中识别出有效的经纬度信息");
+}
 
       const loc = resp.headers.get("location");
       if (loc) {
