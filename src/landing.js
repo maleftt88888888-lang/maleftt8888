@@ -1,188 +1,71 @@
-export function getLandingHtml() {
-  return `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>iOS Location Spoofer · 虚拟定位</title>
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0a0c11">
-<link rel="apple-touch-icon" href="/icon-180.png">
-<link rel="icon" href="/icon.svg" type="image/svg+xml">
-<style>
-:root{
-  --bg:#0a0c11; --card:#12161d; --card2:#191e28; --line:#242b38;
-  --cyan:#17c3cf; --cyan2:#0e97a1; --green:#22c55e; --green2:#159a45;
-  --red:#ff5b60; --amber:#f5a623; --txt:#eef2f8; --muted:#8a93a5; --mono:#7fe3ea;
-}
-*{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-body{
-  font-family:-apple-system,system-ui,"SF Pro","Helvetica Neue",sans-serif;
-  color:var(--txt); line-height:1.5;
-  background:
-    radial-gradient(1100px 420px at 50% -140px, rgba(23,195,207,.16), transparent 70%),
-    radial-gradient(700px 360px at 90% 8%, rgba(34,197,94,.08), transparent 65%),
-    var(--bg);
-  background-attachment:fixed;
-}
-.watermark{
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  z-index:0;
-  opacity:0.12;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='360' height='200'><text x='20' y='100' fill='%23ffffff' font-size='13' transform='rotate(-22, 180, 100)'>小红书独家技术ID95975775001 可乐加糖</text></svg>");
-  background-repeat:repeat;
-}
-.wrap{ position:relative; z-index:1; max-width:600px; margin:0 auto; padding:20px 16px calc(44px + env(safe-area-inset-bottom)); }
+import { Hono } from "hono";
+import { serveStatic } from "hono/cloudflare-workers";
+import { parseCoords, toWgs84, gcj02ToWgs84, round6 } from "./parse.js";
+import { getLandingHtml } from "./landing.js"; // 对应你的 landing.js 真实导出名称
 
-header{ text-align:center; padding:8px 0 6px; }
-header .logowrap{ position:relative; width:74px; margin:0 auto 14px; }
-header .logo{ width:74px; height:74px; border-radius:20px; display:block; box-shadow:0 0 0 1px var(--line),0 10px 30px rgba(23,195,207,.28); margin:0 auto; }
-h1{ font-size:23px; font-weight:800; letter-spacing:.3px; background:linear-gradient(92deg,#eafcff,#7fe3ea 55%,#22c55e); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-.synced{ font-size:12px; color:#22c55e; font-weight:700; margin-top:8px; }
+const app = new Hono();
 
-.ctas{ display:flex; gap:10px; margin:18px 0 4px; }
-.enter{ flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:17px 14px; border:none; border-radius:14px; font-size:16px; font-weight:800; cursor:pointer; text-decoration:none; transition:transform .12s,box-shadow .12s; }
-.enter:active{ transform:scale(.97); }
-.enter.go{ background:linear-gradient(135deg,#2ee06a,#129a44); color:#04240f; box-shadow:0 10px 26px rgba(34,197,94,.34); }
+// 全局跨域支持，确保错误和 API 响应都能顺畅跨域
+app.use("*", async (c, next) => {
+  await next();
+  c.header("Access-Control-Allow-Origin", "*");
+});
 
-.divider{ height:1px; background:linear-gradient(90deg,transparent,var(--line),transparent); margin:24px 0 20px; }
+// 1. 首页 (/) 返回你的原有前端网页
+app.get("/", (c) => {
+  try {
+    return c.html(getLandingHtml());
+  } catch (e) {
+    return c.text("UI Render Error: " + e.message, 500);
+  }
+});
 
-h2{ font-size:16px; font-weight:800; margin-bottom:4px; display:flex; align-items:center; gap:9px; }
-h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:linear-gradient(180deg,var(--cyan),var(--green)); }
-.sub{ font-size:12.5px; color:var(--muted); margin:0 0 14px 13px; }
-.note{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--cyan); border-radius:11px; padding:12px 14px; font-size:12.5px; color:#c3ccdb; margin-bottom:16px; }
-.note b{ color:var(--txt); }
+// 2. 坐标解析 API (含防错与兼容优化)
+app.get("/api/parse", async (c) => {
+  // 同时兼容 url 与 u 参数
+  const raw = c.req.query("url") || c.req.query("u") || "";
+  const cs = (c.req.query("cs") || "").toLowerCase();
+  const fmt = (c.req.query("format") || "").toLowerCase();
 
-.plat{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:12px; cursor:pointer; transition:transform .12s, border-color .12s; }
-.plat:active{ transform:scale(.99); border-color:var(--cyan); }
-.plat .big{ display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px; border:none; border-radius:11px; background:linear-gradient(135deg,var(--cyan),var(--cyan2)); color:#022a2d; font-size:15.5px; font-weight:800; cursor:pointer; text-align:center; text-decoration:none; transition:filter .12s,transform .12s; }
-.plat .big:active{ filter:brightness(1.1); transform:scale(.98); }
-.plat .line{ display:flex; align-items:center; gap:8px; margin-top:9px; }
-.plat .url{ flex:1; min-width:0; font-family:"SF Mono",ui-monospace,monospace; font-size:11px; color:var(--muted); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.plat .copy{ flex:none; padding:8px 15px; border:1px solid var(--line); border-radius:8px; background:var(--card2); color:var(--txt); font-size:12.5px; font-weight:600; cursor:pointer; transition:all .12s; }
-.plat .copy:active{ background:#2a3140; }
-.plat .copy.ok{ background:var(--green); border-color:var(--green); color:#04240f; }
+  if (!raw.trim()) {
+    return c.json({ error: "请求失败：未提供需要解析的地图链接或文本参数 (url 或 u)" }, 400);
+  }
 
-.mitm{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 15px; font-size:12.5px; color:#c3ccdb; margin-top:16px; }
-.mitm b{ color:var(--txt); }
-.mitm code{ display:inline-block; font-family:"SF Mono",ui-monospace,monospace; font-size:11.5px; color:var(--mono); word-break:break-all; line-height:2; }
-.mitm .hosts{ margin-top:8px; padding:10px 12px; background:var(--bg); border:1px solid var(--line); border-radius:9px; }
-.mitm .hosts code{ line-height:2.1; }
+  try {
+    let { lat, lon, name, src } = await parseCoords(raw);
 
-.toast{ position:fixed; left:50%; bottom:40px; transform:translateX(-50%) translateY(20px); background:rgba(8,10,14,.92); color:#fff; padding:11px 20px; border-radius:22px; font-size:14px; opacity:0; transition:all .25s; pointer-events:none; z-index:99; border:1px solid var(--line); }
-.toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+    // 坐标系转换逻辑
+    if (cs === "none") {
+      // 保持原始坐标系
+    } else if (cs === "bd09" || cs === "baidu") {
+      ({ lat, lon } = toWgs84(lat, lon, "baidu"));
+    } else if (cs === "gcj") {
+      ({ lat, lon } = gcj02ToWgs84(lat, lon));
+    } else {
+      ({ lat, lon } = toWgs84(lat, lon, src));
+    }
 
-footer{ text-align:center; font-size:11.5px; color:var(--muted); margin-top:26px; line-height:1.9; }
-footer b{ color:#8fe0e6; }
-</style>
-</head>
-<body>
-<div class="watermark"></div>
-<div class="wrap">
-  <header>
-    <div class="logowrap"><img class="logo" src="/icon.svg" alt="logo"></div>
-    <h1>小红书ID 95975775001 大陆微信号LLME-love ·可乐加糖 虚拟定位</h1>
-    <p class="synced">✅ 已同步上游：随机扰动半径 · 港澳台/百度坐标解析</p>
-  </header>
+    lat = round6(lat);
+    lon = round6(lon);
+    name = name || "";
 
-  <div class="ctas">
-    <button type="button" class="enter go" onclick="handleEnterPicker()">🗺️ 进入选点网页</button>
-  </div>
+    if (fmt === "json") {
+      return c.json({ lat, lon, name });
+    }
+    return c.text(`lat=${lat}&lon=${lon}`);
+  } catch (e) {
+    const errorMsg = e && e.message ? e.message : String(e);
+    return c.json({ error: errorMsg }, 422);
+  }
+});
 
-  <div class="divider"></div>
+// 3. 静态资源托管 (容错处理)
+app.use("/*", async (c, next) => {
+  try {
+    return await serveStatic({ root: "./" })(c, next);
+  } catch (e) {
+    return c.text("Not Found", 404);
+  }
+});
 
-  <h2>安装模块</h2>
-  <p class="sub">点击卡片或「一键导入」直接装；或「复制」手动添加。</p>
-  <div class="note" style="font-size: 15px; color: #ff5b60; line-height: 1.6;">📍 支持iOS 26+ 切换后可能需重启一次设备清缓存。</div>
-  
-  <div id="plats">
-    <!-- Shadowrocket 卡片（点击整块区域触发导入） -->
-    <div class="plat" onclick="openShadowrocket()">
-      <button class="big" type="button">一键导入 Shadowrocket</button>
-      <div class="line" onclick="event.stopPropagation()">
-        <span class="url" id="url-sr"></span>
-        <button class="copy" onclick="doCopy('ios-location-spoofer.sgmodule', this)">复制</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="mitm">
-    <b>MITM 主机名（如全部配置成功仍不生效，在 MITM / HTTPS 解密中手动加入下面5个域名）：</b>
-    <div class="hosts"><code>gs-loc.apple.com<br>gs-loc-cn.apple.com<br>bluedot.is.autonavi.com<br>bluedot.is.autonavi.com.gds.alibabadns.com<br>gps-ssl.ls.apple.com</code></div>
-  </div>
-
-  <footer>
-    坐标只存在你<b>当前设备</b>上，服务端不留存记录。<br>
-    GNU AGPL-3.0 · 仅供学习研究
-  </footer>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-function handleEnterPicker() {
-  toast("正在验证权限...");
-  fetch('/api/check-auth')
-    .then(function(res) {
-      if (res.ok) {
-        window.location.href = "/picker";
-      } else {
-        toast("卡密已过期或失效，请重新登录");
-        setTimeout(function(){ location.reload(); }, 1200);
-      }
-    })
-    .catch(function() {
-      toast("网络异常，请稍后再试");
-    });
-}
-
-function openShadowrocket() {
-  var origin = location.origin;
-  var moduleUrl = origin + '/ios-location-spoofer.sgmodule';
-  window.location.href = 'shadowrocket://install?module=' + encodeURIComponent(moduleUrl);
-}
-
-function toast(m){ 
-  var t=document.getElementById('toast'); 
-  t.textContent=m; 
-  t.classList.add('show'); 
-  setTimeout(function(){ t.classList.remove('show'); }, 1800); 
-}
-
-function copyText(s){
-  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(s);
-  return new Promise(function(res,rej){ 
-    try{ 
-      var ta=document.createElement('textarea'); 
-      ta.value=s; ta.style.position='fixed'; ta.style.opacity='0'; 
-      document.body.appendChild(ta); ta.select(); 
-      var ok=document.execCommand('copy'); 
-      document.body.removeChild(ta); 
-      ok?res():rej(); 
-    }catch(e){ rej(e); } 
-  });
-}
-
-function doCopy(file, btn){ 
-  var fullUrl = location.origin + '/' + file;
-  copyText(fullUrl).then(function(){ 
-    toast('已复制模块链接'); 
-    var o=btn.textContent; 
-    btn.classList.add('ok'); 
-    btn.textContent='✓'; 
-    setTimeout(function(){ btn.textContent=o; btn.classList.remove('ok'); }, 1200); 
-  }).catch(function(){ toast('复制失败，请手动选择'); }); 
-}
-
-window.onload = function() {
-  var origin = location.origin;
-  var sgUrl = origin + '/ios-location-spoofer.sgmodule';
-
-  document.getElementById('url-sr').textContent = sgUrl;
-};
-</script>
-</body>
-</html>`;
-}
+export default app;
