@@ -651,7 +651,7 @@ body {
   <a class="tg" href="https://wloc-spoofer.maleftt88888888.workers.dev/" target="_blank" rel="noopener">✈️ TG群</a>
 </div>
 <div class="redbox">
-  <div class="rt">⚠️ 小紅書獨家ID 95975775001</div>
+  <div class="rt">⚠️ 小紅書獨家ID 95975775001中国大陆技术售后微信号 LLME-love</div>
   <div class="rb"></b>中国大陆技术售后微信号 LLME-love<br>仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
 </div>
 <a class="vidbtn" href="小紅書獨家ID 95975775001" target="_blank" rel="noopener" data-i18n="video_btn">▶️ 小紅書獨家ID 95975775001</a>
