@@ -802,17 +802,17 @@ async function searchPlace() {
   const q = document.getElementById('searchInput').value.trim();
   if (!q) return toast(t('enter_place'));
   const box = document.getElementById('searchResults');
-  box.innerHTML = '<div class="search-item">' + escHtml(t('searching')) + '<\\/div>';
+  box.innerHTML = '<div class="search-item">' + eschtml(t('searching')) + '</div>';
   try {
-    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&q='+encodeURIComponent(q), { headers: { 'Accept-Language': (lang === 'zh' ? 'zh-CN' : 'en') } });
+    const r = await fetch(`/api/search?q=${encodeURIComponent(q)}&lang=${encodeURIComponent(lang || 'zh')}`);
     searchResults = await r.json();
     if (!searchResults.length) { box.innerHTML = ''; toast(t('not_found', q), 3000); return; }
     box.innerHTML = searchResults.map(function(p, i){
       const name = p.display_name || '';
       return '<div class="search-item" onclick="selectSearchResult(' + i + ')">' +
-        '<div class="si-name">' + escHtml(name.split(',')[0]) + '<\\/div>' +
-        '<div class="si-sub">' + escHtml(name) + '<\\/div>' +
-      '<\\/div>';
+        '<div class="si-name">' + eschtml(name.split(',')[0]) + '</div>' +
+        '<div class="si-sub">' + eschtml(name) + '</div>' +
+      '</div>';
     }).join('');
   } catch(e) { box.innerHTML = ''; toast(t('search_failed'), 3000); }
 }
