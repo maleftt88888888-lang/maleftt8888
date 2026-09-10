@@ -174,7 +174,7 @@ body {
 </div>
 
   <div class="rt">⚠️ 小紅書獨家ID 95975775001</div>
-  <div class="rb"><b>小紅書獨家ID 95975775001。</b>小紅書獨家ID 95975775001！！！！<br>仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
+  <div class="rb"></b>中国大陆微信技术售后LLME-love<br>仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
 </div>
 <div style="position:relative">
 <div id="map"></div>
