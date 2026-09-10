@@ -55,7 +55,8 @@ h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:li
 .note{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--cyan); border-radius:11px; padding:12px 14px; font-size:12.5px; color:#c3ccdb; margin-bottom:16px; }
 .note b{ color:var(--txt); }
 
-.plat{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:12px; }
+.plat{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:12px; cursor:pointer; transition:transform .12s, border-color .12s; }
+.plat:active{ transform:scale(.99); border-color:var(--cyan); }
 .plat .big{ display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px; border:none; border-radius:11px; background:linear-gradient(135deg,var(--cyan),var(--cyan2)); color:#022a2d; font-size:15.5px; font-weight:800; cursor:pointer; text-align:center; text-decoration:none; transition:filter .12s,transform .12s; }
 .plat .big:active{ filter:brightness(1.1); transform:scale(.98); }
 .plat .line{ display:flex; align-items:center; gap:8px; margin-top:9px; }
@@ -63,7 +64,6 @@ h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:li
 .plat .copy{ flex:none; padding:8px 15px; border:1px solid var(--line); border-radius:8px; background:var(--card2); color:var(--txt); font-size:12.5px; font-weight:600; cursor:pointer; transition:all .12s; }
 .plat .copy:active{ background:#2a3140; }
 .plat .copy.ok{ background:var(--green); border-color:var(--green); color:#04240f; }
-.plat .pnote{ font-size:11.5px; color:var(--muted); margin-top:7px; line-height:1.6; }
 
 .mitm{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 15px; font-size:12.5px; color:#c3ccdb; margin-top:16px; }
 .mitm b{ color:var(--txt); }
@@ -83,7 +83,7 @@ footer b{ color:#8fe0e6; }
 <div class="wrap">
   <header>
     <div class="logowrap"><img class="logo" src="/icon.svg" alt="logo"></div>
-    <h1>小红书ID 95975775001 大陆微信号LLME-love  ·可乐加糖 虚拟定位</h1>
+    <h1>小红书ID 95975775001 大陆微信号LLME-love ·可乐加糖 虚拟定位</h1>
     <p class="synced">✅ 已同步上游：随机扰动半径 · 港澳台/百度坐标解析</p>
   </header>
 
@@ -94,40 +94,17 @@ footer b{ color:#8fe0e6; }
   <div class="divider"></div>
 
   <h2>安装模块</h2>
-  <p class="sub">选你的代理客户端，点「一键导入」直接装；或「复制」手动添加。</p>
+  <p class="sub">点击卡片或「一键导入」直接装；或「复制」手动添加。</p>
   <div class="note" style="font-size: 15px; color: #ff5b60; line-height: 1.6;">📍 支持iOS 26+ 切换后可能需重启一次设备清缓存。</div>
   
   <div id="plats">
-    <!-- Surge -->
-    <div class="plat">
-      <a class="big" id="btn-surge" href="#">一键导入 Surge</a>
-      <div class="line"><span class="url" id="url-surge"></span><button class="copy" onclick="doCopy('ios-location-spoofer.sgmodule', this)">复制</button></div>
-    </div>
-    <!-- Shadowrocket -->
-    <div class="plat">
-      <button class="big" type="button" onclick="openShadowrocket()">一键导入 Shadowrocket</button>
-      <div class="line"><span class="url" id="url-sr"></span><button class="copy" onclick="doCopy('ios-location-spoofer.sgmodule', this)">复制</button></div>
-    </div>
-    <!-- Egern -->
-    <div class="plat">
-      <a class="big" id="btn-egern" href="#">一键导入 Egern</a>
-      <div class="line"><span class="url" id="url-egern"></span><button class="copy" onclick="doCopy('ios-location-spoofer.sgmodule', this)">复制</button></div>
-    </div>
-    <!-- Loon -->
-    <div class="plat">
-      <a class="big" id="btn-loon" href="#">一键导入 Loon</a>
-      <div class="line"><span class="url" id="url-loon"></span><button class="copy" onclick="doCopy('ios-location-spoofer.lnplugin', this)">复制</button></div>
-    </div>
-    <!-- Stash -->
-    <div class="plat">
-      <a class="big" id="btn-stash" href="#">一键导入 Stash</a>
-      <div class="line"><span class="url" id="url-stash"></span><button class="copy" onclick="doCopy('ios-location-spoofer.stoverride', this)">复制</button></div>
-    </div>
-    <!-- Quantumult X -->
-    <div class="plat">
-      <a class="big" id="btn-qx" href="#">一键导入 Quantumult X</a>
-      <div class="line"><span class="url" id="url-qx"></span><button class="copy" onclick="doCopy('ios-location-spoofer.snippet', this)">复制</button></div>
-      <div class="pnote">QX 没有模块面板：一键导入=添加「重写」资源(需已配资源解析器)；MITM 主机名要手动加进 设置→MITM。</div>
+    <!-- Shadowrocket 卡片（点击整块区域触发导入） -->
+    <div class="plat" onclick="openShadowrocket()">
+      <button class="big" type="button">一键导入 Shadowrocket</button>
+      <div class="line" onclick="event.stopPropagation()">
+        <span class="url" id="url-sr"></span>
+        <button class="copy" onclick="doCopy('ios-location-spoofer.sgmodule', this)">复制</button>
+      </div>
     </div>
   </div>
 
@@ -145,7 +122,6 @@ footer b{ color:#8fe0e6; }
 <div class="toast" id="toast"></div>
 
 <script>
-// 点击先异步校验 API 权限，通过后再跳转
 function handleEnterPicker() {
   toast("正在验证权限...");
   fetch('/api/check-auth')
@@ -203,24 +179,8 @@ function doCopy(file, btn){
 window.onload = function() {
   var origin = location.origin;
   var sgUrl = origin + '/ios-location-spoofer.sgmodule';
-  var lnUrl = origin + '/ios-location-spoofer.lnplugin';
-  var stUrl = origin + '/ios-location-spoofer.stoverride';
-  var snUrl = origin + '/ios-location-spoofer.snippet';
 
-  document.getElementById('url-surge').textContent = sgUrl;
   document.getElementById('url-sr').textContent = sgUrl;
-  document.getElementById('url-egern').textContent = sgUrl;
-  document.getElementById('url-loon').textContent = lnUrl;
-  document.getElementById('url-stash').textContent = stUrl;
-  document.getElementById('url-qx').textContent = snUrl;
-
-  document.getElementById('btn-surge').href = 'surge:///install-module?url=' + encodeURIComponent(sgUrl);
-  document.getElementById('btn-egern').href = 'egern:///install-module?url=' + encodeURIComponent(sgUrl);
-  document.getElementById('btn-loon').href = 'loon://import?plugin=' + encodeURIComponent(lnUrl);
-  document.getElementById('btn-stash').href = 'stash://install-override?url=' + encodeURIComponent(stUrl);
-  
-  var qxExtra = ', tag=iOS Location Spoofer, update-interval=172800, opt-parser=true, enabled=true';
-  document.getElementById('btn-qx').href = 'quantumult-x:///add-resource?remote-resource=' + encodeURIComponent(JSON.stringify({ rewrite_remote:[snUrl + qxExtra] }));
 };
 </script>
 </body>
