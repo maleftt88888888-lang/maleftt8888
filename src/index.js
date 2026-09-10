@@ -1,197 +1,539 @@
-import { Hono } from "hono";
-import { serveStatic } from "hono/cloudflare-workers";
-import { parseCoords, toWgs84, gcj02ToWgs84, round6 } from "./parse.js";
+import { Hono } from "hono/tiny";
+import { getPageHtml } from "./page.js";
 import { getLandingHtml } from "./landing.js";
+import { parseCoords, toWgs84, gcj02ToWgs84, round6 } from "./parse.js";
+import { ICON_180_B64, ICON_512_B64, ICON_SVG, b64ToBytes } from "./icons.js";
+import { LOCATION_SPOOFER_B64, LOCATION_SETTINGS_B64, LOCATION_SPOOFER_QX_B64 } from "./modules.js";
 
 const app = new Hono();
 
+/* ---- 全局卡密 & 用户名 & 到期时间 & 单设备绑定拦截中间件 ---- */
 app.use("*", async (c, next) => {
-  await next();
-  c.header("Access-Control-Allow-Origin", "*");
-});
+  const url = new URL(c.req.url);
+  const pathname = url.pathname;
 
-// 1. 首页 UI
-app.get("/", (c) => {
-  try {
-    return c.html(getLandingHtml());
-  } catch (e) {
-    return c.text("UI Render Error: " + e.message, 500);
+  // 放行静态资源、解绑页面、管理员页面及 API
+  const isStaticAsset =
+    pathname.endsWith(".png") ||
+    pathname.endsWith(".svg") ||
+    pathname.endsWith(".ico") ||
+    pathname.endsWith(".webmanifest") ||
+    pathname.endsWith(".js") ||
+    pathname.endsWith(".sgmodule") ||
+    pathname.endsWith(".stoverride") ||
+    pathname.endsWith(".lnplugin") ||
+    pathname.endsWith(".snippet") ||
+    pathname.startsWith("/unbind") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/api/") ||
+    pathname === "/tg";
+
+  if (isStaticAsset) {
+    return await next();
+  }
+
+  // 1. 获取卡密
+  let userKey = c.req.query("key") || c.req.query("token") || c.req.query("pwd") || "";
+  const cookieHeader = c.req.header("Cookie") || "";
+  const cookies = Object.fromEntries(
+    cookieHeader.split(";").map(item => {
+      const [k, ...v] = item.trim().split("=");
+      return [k, (v || []).join("=")];
+    })
+  );
+
+  if (!userKey && cookies.card_key) {
+    userKey = cookies.card_key;
+  }
+
+  // 2. 未输入卡密 -> 显示登录页
+  if (!userKey) {
+    const loginHtml = `<!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+      <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>访问验证</title>
+      <style>
+        body { font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #0b0b0f; color: #fff; }
+        .card { background: #1c1c24; padding: 32px; border-radius: 16px; text-align: center; width: 320px; box-sizing: border-box; }
+        input { width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 16px; border: 1px solid #2c2c3e; background: #0b0b0f; color: #fff; border-radius: 8px; text-align: center; }
+        button { width: 100%; padding: 12px; background: #007aff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        a { color: #8e8e93; font-size: 12px; text-decoration: none; display: inline-block; margin-top: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <h3>🔑 请输入卡密</h3>
+        <p style="color:#8e8e93;font-size:13px;">请输入有效卡密以继续使用服务</p>
+        <form method="GET">
+          <input type="text" name="key" placeholder="请输入卡密" required />
+          <button type="submit">验证并进入</button>
+        </form>
+        <a href="/unbind">设备锁定了？点击前往自助解绑</a>
+      </div>
+    </body>
+    </html>`;
+    return c.html(loginHtml, 401);
+  }
+
+  const KV = c.env?.CARD_KEYS || (typeof CARD_KEYS !== "undefined" ? CARD_KEYS : null);
+  if (!KV) return c.text("错误：未能在环境变量中绑定 CARD_KEYS KV 数据库！", 500);
+
+  // 3. 从 KV 校验卡密
+  const keyDataRaw = await KV.get(userKey);
+  if (!keyDataRaw) {
+    return c.html("<h2 style='color:red;text-align:center;margin-top:20%'>❌ 错误：卡密无效或不存在！</h2>", 403);
+  }
+
+  let expireDateStr = keyDataRaw;
+  let boundDeviceId = null;
+  let userName = "尊贵用户";
+
+  if (keyDataRaw.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(keyDataRaw);
+      expireDateStr = parsed.expire || expireDateStr;
+      boundDeviceId = parsed.deviceId || null;
+      userName = parsed.name || userName;
+    } catch (e) {}
+  }
+
+  // 4. 到期时间校验
+  const formattedExpireStr = expireDateStr.replace(/-(\d)(?=-|$)/g, '-0$1');
+  const expireTime = new Date(`${formattedExpireStr}T23:59:59+08:00`).getTime();
+
+  if (isNaN(expireTime) || Date.now() > expireTime) {
+    c.header("Set-Cookie", "card_key=; Path=/; Max-Age=0", { append: true });
+    return c.html(`<h2 style='color:red;text-align:center;margin-top:20%'>⏰ 用户 [${userName}] 的卡密已于 ${expireDateStr} 到期。</h2>`, 403);
+  }
+
+  // 5. 设备绑定校验
+  let currentDeviceId = cookies.device_id || crypto.randomUUID();
+  if (!boundDeviceId) {
+    await KV.put(userKey, JSON.stringify({ name: userName, expire: expireDateStr, deviceId: currentDeviceId }));
+  } else if (boundDeviceId !== currentDeviceId) {
+    return c.html(`<div style='text-align:center;margin-top:20%;color:#fff;font-family:sans-serif;'>
+      <h2 style='color:orange;'>⚠️ 该卡密已被其他设备绑定！</h2>
+      <p>如果您更换了设备，请前往解绑页面：</p>
+      <a href="/unbind" style="color:#007aff;">👉 点击进入自助解绑页面</a>
+    </div>`, 403);
+  }
+
+  // 6. 写入 Cookie
+  c.header("Set-Cookie", `card_key=${userKey}; Path=/; Max-Age=2592000`, { append: true });
+  c.header("Set-Cookie", `device_id=${currentDeviceId}; Path=/; Max-Age=2592000; HttpOnly`, { append: true });
+  c.header("Set-Cookie", `expire_date=${expireDateStr}; Path=/; Max-Age=2592000`, { append: true });
+
+  await next();
+
+  // 7. 注入浮窗
+  const contentType = c.res.headers.get("content-type") || "";
+  if (contentType.includes("text/html")) {
+    const originalBody = await c.res.text();
+    const isPermanent = parseInt(expireDateStr.split("-")[0], 10) >= 2099;
+    const displayText = isPermanent ? "永久有效" : expireDateStr;
+
+    const floatingBadge = `
+      <div id="expire-badge" style="position: fixed; bottom: 12px; right: 12px; z-index: 999999; background: rgba(28,28,36,0.88); backdrop-filter: blur(8px); color: #8e8e93; font-size: 11px; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); font-family: -apple-system, sans-serif; pointer-events: none; opacity: 0.9; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        🔑 密钥：<span style="color: #ff9500; font-weight: 600; margin-right: 8px;">${userKey}</span>
+        👤 用户：<span style="color: #007aff; font-weight: 600; margin-right: 8px;">${userName}</span>
+        ⏳ 有效期：<span style="color: #34c759; font-weight: 600;">${displayText}</span>
+      </div>
+    `;
+    const newBody = originalBody.replace("</body>", `${floatingBadge}</body>`);
+    c.res = new Response(newBody, c.res);
   }
 });
 
-// 2. 独立后台管理页面 (/admin)
-app.get("/admin", (c) => {
-  return c.html(`
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>后台管理 - 卡密管理系统</title>
-<style>
-  body { font-family: -apple-system, sans-serif; background: #0a0c11; color: #eef2f8; max-width: 800px; margin: 40px auto; padding: 0 20px; }
-  .card { background: #12161d; border: 1px solid #242b38; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-  h1 { font-size: 20px; color: #17c3cf; margin-bottom: 20px; }
-  input, button { padding: 10px; border-radius: 6px; border: 1px solid #242b38; }
-  input { background: #0a0c11; color: #fff; width: 60%; }
-  button { background: #17c3cf; color: #000; font-weight: bold; cursor: pointer; border: none; }
-  table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-  th, td { border: 1px solid #242b38; padding: 10px; text-align: left; font-size: 13px; }
-  th { background: #191e28; color: #7fe3ea; }
-</style>
-</head>
-<body>
-  <div class="card">
-    <h1>🔑 后台管理面板</h1>
-    <div style="display:flex; gap:10px;">
-      <input type="password" id="adminPass" placeholder="输入管理员密码">
-      <button onclick="loadKeys()">登录 / 刷新列表</button>
+/* ---- CF 内置：用户自助解绑页面 ---- */
+app.get("/unbind", (c) => {
+  const html = `<!DOCTYPE html>
+  <html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卡密自助解绑</title>
+    <style>
+      body { font-family: -apple-system, sans-serif; background: #0c0c0e; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+      .box { background: #181820; padding: 30px; border-radius: 16px; width: 320px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+      input { width: 100%; padding: 12px; margin: 10px 0; background: #0c0c0e; border: 1px solid #2a2a38; color: #fff; border-radius: 8px; box-sizing: border-box; text-align: center; }
+      .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; box-sizing: border-box; text-decoration: none; display: inline-block; font-size: 14px; }
+      .btn-unbind { background: #34c759; color: white; }
+      .btn-login { background: #007aff; color: white; margin-top: 12px; }
+      #msg { margin-top: 15px; font-size: 13px; word-break: break-all; }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h2>🔓 设备自助解绑</h2>
+      <p style="font-size:12px;color:#888;">更换设备或提示绑定时，输入卡密即可解绑</p>
+      <input type="text" id="cardKey" placeholder="请输入您的卡密" />
+      <button class="btn btn-unbind" onclick="doUnbind()">一键解绑旧设备</button>
+      <a href="/" class="btn btn-login">前往登录 / 进入主页</a>
+      <div id="msg"></div>
     </div>
-  </div>
+    <script>
+      async function doUnbind() {
+        const key = document.getElementById("cardKey").value.trim();
+        const msgDiv = document.getElementById("msg");
+        if (!key) { msgDiv.innerHTML = "<span style='color:red;'>请输入卡密</span>"; return; }
+        msgDiv.innerHTML = "<span style='color:#aaa;'>正在解绑中...</span>";
+        try {
+          const res = await fetch("/api/user-unbind?key=" + encodeURIComponent(key));
+          const text = await res.text();
+          if (res.ok) {
+            msgDiv.innerHTML = "<span style='color:#34c759;'>" + text + "</span><br><br><span style='color:#007aff;font-size:12px;'>3秒后将自动跳往主页...</span>";
+            setTimeout(() => {
+              window.location.href = "/?key=" + encodeURIComponent(key);
+            }, 3000);
+          } else {
+            msgDiv.innerHTML = "<span style='color:#ff3b30;'>" + text + "</span>";
+          }
+        } catch (e) {
+          msgDiv.innerHTML = "<span style='color:red;'>网络错误，解绑失败</span>";
+        }
+      }
+    </script>
+  </body>
+  </html>`;
+  return c.html(html);
+});
 
-  <div class="card" id="dataSection" style="display:none;">
-    <h3>KV 卡密列表</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>卡密/密钥</th>
-          <th>绑定信息 / 状态</th>
-        </tr>
-      </thead>
-      <tbody id="keyList"></tbody>
-    </table>
-  </div>
+/* ---- 用户自助解绑 API ---- */
+app.get("/api/user-unbind", async (c) => {
+  const targetKey = c.req.query("key");
+  if (!targetKey) return c.text("❌ 请输入卡密", 400);
 
-  <script>
-    async function loadKeys() {
-      const pass = document.getElementById('adminPass').value;
-      if(!pass) return alert('请输入管理密码');
+  const KV = c.env?.CARD_KEYS || (typeof CARD_KEYS !== "undefined" ? CARD_KEYS : null);
+  const keyDataRaw = await KV.get(targetKey);
+
+  if (!keyDataRaw) return c.text("❌ 卡密不存在或已被删除", 404);
+
+  let expireDateStr = keyDataRaw;
+  let userName = "尊贵用户";
+
+  if (keyDataRaw.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(keyDataRaw);
+      expireDateStr = parsed.expire || expireDateStr;
+      userName = parsed.name || userName;
+    } catch (e) {}
+  }
+
+  await KV.put(targetKey, JSON.stringify({ name: userName, expire: expireDateStr }));
+  return c.text(`✅ 用户 [${userName}] 的设备解绑成功！现在可以在新设备上登录了。`);
+});
+
+/* ---- 管理员后台控制台（/admin） ---- */
+app.get("/admin", (c) => {
+  const html = `<!DOCTYPE html>
+  <html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员控制台</title>
+    <style>
+      body { font-family: -apple-system, sans-serif; background: #0c0c0e; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px 0; box-sizing: border-box; }
+      .box { background: #181820; padding: 24px; border-radius: 16px; width: 340px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); border: 1px solid #2a2a38; }
+      h2 { text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 20px; }
+      .section-title { font-size: 14px; font-weight: bold; color: #007aff; border-left: 3px solid #007aff; padding-left: 8px; margin: 20px 0 10px 0; text-align: left; }
+      input, select { width: 100%; padding: 10px; margin: 6px 0; background: #0c0c0e; border: 1px solid #2a2a38; color: #fff; border-radius: 8px; box-sizing: border-box; font-size: 13px; }
+      .btn { width: 100%; padding: 11px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 14px; }
+      .btn-add { background: #34c759; color: white; }
+      .btn-unbind { background: #ff9500; color: white; }
+      .btn-gen { background: #2c2c3e; color: #007aff; border: 1px solid #007aff; margin-top: 2px; padding: 6px; font-size: 12px; }
+      #msg { margin-top: 15px; font-size: 13px; word-break: break-all; text-align: center; padding: 8px; border-radius: 6px; background: #0c0c0e; display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h2>🛠️ 管理员控制台</h2>
       
-      try {
-        const res = await fetch('/api/admin/keys?password=' + encodeURIComponent(pass));
-        const data = await res.json();
-        
-        if(!res.ok || !data.success) {
-          alert(data.message || '密码错误');
+      <div>
+        <label style="font-size: 12px; color: #aaa;">🔑 管理员密码：</label>
+        <input type="password" id="adminPwd" placeholder="请输入 ADMIN_PWD" />
+      </div>
+
+      <div class="section-title">➕ 快捷生成 / 发放卡密</div>
+      <input type="text" id="newKey" placeholder="卡密（可自定义或点击随机生成）" />
+      <button class="btn btn-gen" onclick="genRandomKey()">🎲 随机生成卡密</button>
+      <input type="text" id="newName" placeholder="用户备注/姓名（如：张三）" value="尊贵用户" />
+      <input type="date" id="newExpire" />
+      <button class="btn btn-gen" onclick="setPermanent()" style="border-color:#34c759; color:#34c759;">♾️ 设置为永久有效</button>
+      <button class="btn btn-add" onclick="doCreateKey()">生成并存入数据库</button>
+
+      <div class="section-title">🔓 强制解绑旧卡密</div>
+      <input type="text" id="targetKey" placeholder="需要强制解绑的卡密" />
+      <button class="btn btn-unbind" onclick="doAdminUnbind()">强制解绑设备</button>
+
+      <div id="msg"></div>
+    </div>
+
+    <script>
+      // 默认设置到期时间为一年后
+      const nextYear = new Date();
+      nextYear.setFullYear(nextYear.getFullYear() + 1);
+      document.getElementById("newExpire").value = nextYear.toISOString().split("T")[0];
+
+      function showMsg(html, isSuccess) {
+        const msgDiv = document.getElementById("msg");
+        msgDiv.style.display = "block";
+        msgDiv.style.color = isSuccess ? "#34c759" : "#ff3b30";
+        msgDiv.innerHTML = html;
+      }
+
+      function genRandomKey() {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let res = "VIP";
+        for (let i = 0; i < 8; i++) {
+          res += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        document.getElementById("newKey").value = res;
+      }
+
+      function setPermanent() {
+        document.getElementById("newExpire").value = "2099-12-31";
+      }
+
+      async function doCreateKey() {
+        const pwd = document.getElementById("adminPwd").value.trim();
+        const key = document.getElementById("newKey").value.trim();
+        const name = document.getElementById("newName").value.trim() || "尊贵用户";
+        const expire = document.getElementById("newExpire").value;
+
+        if (!pwd || !key || !expire) {
+          showMsg("❌ 密码、卡密和到期时间不能为空", false);
           return;
         }
 
-        document.getElementById('dataSection').style.display = 'block';
-        const tbody = document.getElementById('keyList');
-        tbody.innerHTML = '';
-        
-        data.data.forEach(item => {
-          tbody.innerHTML += \`<tr>
-            <td>\${item.key}</td>
-            <td>\${item.value || 'Active'}</td>
-          </tr>\`;
-        });
-      } catch(e) {
-        alert('请求失败');
+        try {
+          const res = await fetch("/api/admin/create-key", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ adminPwd: pwd, key, name, expire })
+          });
+          const text = await res.text();
+          showMsg(text, res.ok);
+        } catch (e) {
+          showMsg("❌ 网络请求失败", false);
+        }
       }
-    }
-  </script>
-</body>
-</html>
-  `);
+
+      async function doAdminUnbind() {
+        const pwd = document.getElementById("adminPwd").value.trim();
+        const key = document.getElementById("targetKey").value.trim();
+
+        if (!pwd || !key) {
+          showMsg("❌ 密码和目标卡密不能为空", false);
+          return;
+        }
+
+        try {
+          const res = await fetch("/api/unbind?admin_pwd=" + encodeURIComponent(pwd) + "&key=" + encodeURIComponent(key));
+          const text = await res.text();
+          showMsg(text, res.ok);
+        } catch (e) {
+          showMsg("❌ 网络请求失败", false);
+        }
+      }
+    </script>
+  </body>
+  </html>`;
+  return c.html(html);
 });
 
-// 3. 验证卡密接口（直接读取 Cloudflare KV）
-app.get("/api/check-auth", async (c) => {
-  const key = c.req.query("key") || c.req.header("Authorization");
-  if (!key || !key.trim()) {
-    return c.json({ success: false, message: "未提供卡密" }, 401);
-  }
-
-  // 尝试从环境变量获取 KV (请确保你在 Cloudflare 后台绑定的变量名是 KEYS 或 KV)
-  const kv = c.env.KEYS || c.env.KV;
-  if (kv) {
-    const val = await kv.get(key.trim());
-    if (val !== null) {
-      return c.json({ success: true, message: "验证成功" }, 200);
-    }
-    return c.json({ success: false, message: "卡密无效或不存在" }, 401);
-  }
-
-  // 如果没配置KV绑定，降级为只要有输入就通过（防止报错）
-  return c.json({ success: true, message: "验证成功(未绑定KV)" }, 200);
-});
-
-// 4. 卡密换绑接口
-app.post("/api/unbind", async (c) => {
+/* ---- 管理员 API：创建/新增卡密 ---- */
+app.post("/api/admin/create-key", async (c) => {
   try {
-    const body = await c.req.json().catch(() => ({}));
-    const { oldKey } = body;
-    if (!oldKey) {
-      return c.json({ success: false, message: "请输入原卡密" }, 400);
+    const body = await c.req.json();
+    const { adminPwd, key, name, expire } = body;
+
+    const correctAdminPwd = c.env?.ADMIN_PWD || "your_admin_secret";
+    if (adminPwd !== correctAdminPwd) {
+      return c.text("❌ 管理员密码错误", 403);
     }
 
-    const kv = c.env.KEYS || c.env.KV;
-    if (kv) {
-      // 可以在这里写你的KV解绑逻辑，例如删除绑定的设备ID记录
-      // await kv.delete(oldKey + "_device");
+    if (!key || !expire) {
+      return c.text("❌ 卡密与到期时间不能为空", 400);
     }
 
-    return c.json({ success: true, message: "设备解绑成功！" }, 200);
+    const KV = c.env?.CARD_KEYS || (typeof CARD_KEYS !== "undefined" ? CARD_KEYS : null);
+    if (!KV) return c.text("❌ 未找到 KV 数据库绑定", 500);
+
+    // 存入 KV 数据库，清空旧的设备绑定数据
+    await KV.put(key, JSON.stringify({ name: name || "尊贵用户", expire: expire }));
+
+    return c.text(`✅ 卡密创建成功！\n🔑 卡密: ${key}\n👤 用户: ${name}\n⏳ 有效期至: ${expire}`);
   } catch (e) {
-    return c.json({ success: false, message: "解绑失败：" + e.message }, 500);
+    return c.text("❌ 解析请求参数失败", 400);
   }
 });
 
-// 5. 后台管理数据接口（遍历 KV）
-app.get("/api/admin/keys", async (c) => {
-  const adminPassword = c.req.query("password") || c.req.header("X-Admin-Pass");
+/* ---- 管理员后台解绑 API ---- */
+app.get("/api/unbind", async (c) => {
+  const adminPwd = c.req.query("admin_pwd");
+  const targetKey = c.req.query("key");
 
-  // 请改成你习惯的管理密码
-  if (adminPassword !== "admin123") {
-    return c.json({ success: false, message: "管理员密码错误" }, 403);
+  const correctAdminPwd = c.env?.ADMIN_PWD || "your_admin_secret";
+
+  if (adminPwd !== correctAdminPwd) {
+    return c.text("❌ 管理员密码错误", 403);
+  }
+  if (!targetKey) {
+    return c.text("❌ 请提供要解绑的卡密 ?key=xxx", 400);
   }
 
-  const kv = c.env.KEYS || c.env.KV;
-  let list = [];
-  if (kv) {
-    const keysData = await kv.list();
-    for (let k of keysData.keys) {
-      const val = await kv.get(k.name);
-      list.push({ key: k.name, value: val });
-    }
-  } else {
-    list.push({ key: "提示", value: "未在Cloudflare后台绑定KV命名空间变量(KEYS或KV)" });
+  const KV = c.env?.CARD_KEYS || (typeof CARD_KEYS !== "undefined" ? CARD_KEYS : null);
+  const keyDataRaw = await KV.get(targetKey);
+
+  if (!keyDataRaw) {
+    return c.text("❌ 未找到该卡密", 404);
   }
 
-  return c.json({ success: true, data: list });
+  let expireDateStr = keyDataRaw;
+  let userName = "尊贵用户";
+
+  if (keyDataRaw.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(keyDataRaw);
+      expireDateStr = parsed.expire || expireDateStr;
+      userName = parsed.name || userName;
+    } catch (e) {}
+  }
+
+  await KV.put(targetKey, JSON.stringify({ name: userName, expire: expireDateStr }));
+  return c.text(`✅ 用户 [${userName}] 的卡密 [${targetKey}] 设备解绑成功！当前有效至：${expireDateStr}`);
 });
-// 搜索地点代理接口（解决不挂代理搜不出地点的问题）
-app.get('/api/search', async (c) => {
-  const q = c.req.query('q');
-  if (!q) {
-    return c.json({ success: false, error: 'Missing query' }, 400);
-  }
-  try {
-    const searchRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)' }
-    });
-    const data = await searchRes.json();
-    return c.json({ success: true, data });
-  } catch (e) {
-    return c.json({ success: false, error: e.message }, 500);
-  }
+
+/* ---- API 鉴权 ---- */
+app.get("/api/check-auth", (c) => {
+  return c.json({ success: true, message: "验证通过" });
 });
-// 6. 坐标解析 API
+
+app.get("/", (c) => {
+  c.header("Cache-Control", "no-cache");
+  return c.html(getLandingHtml());
+});
+
+app.get("/picker", (c) => {
+  c.header("Cache-Control", "no-cache");
+  return c.html(getPageHtml());
+});
+
+/* ---- PWA: manifest + icons ---- */
+const MANIFEST = {
+  name: "iOS Location Spoofer",
+  short_name: "iOSLoc",
+  description: "Stateless map picker for iOS Location Spoofer (WGS-84 + altitude).",
+  start_url: "/picker",
+  scope: "/",
+  display: "standalone",
+  orientation: "portrait",
+  background_color: "#f2f2f7",
+  theme_color: "#007aff",
+  icons: [
+    { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+    { src: "/icon-180.png", sizes: "180x180", type: "image/png", purpose: "any" },
+    { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+  ],
+};
+const IMG_CACHE = "public, max-age=604800, immutable";
+app.get("/manifest.webmanifest", (c) =>
+  c.body(JSON.stringify(MANIFEST), 200, { "Content-Type": "application/manifest+json", "Cache-Control": IMG_CACHE })
+);
+app.get("/icon.svg", (c) => c.body(ICON_SVG, 200, { "Content-Type": "image/svg+xml", "Cache-Control": IMG_CACHE }));
+app.get("/icon-180.png", (c) => c.body(b64ToBytes(ICON_180_B64), 200, { "Content-Type": "image/png", "Cache-Control": IMG_CACHE }));
+app.get("/icon-512.png", (c) => c.body(b64ToBytes(ICON_512_B64), 200, { "Content-Type": "image/png", "Cache-Control": IMG_CACHE }));
+app.get("/favicon.ico", (c) => c.body(ICON_SVG, 200, { "Content-Type": "image/svg+xml", "Cache-Control": IMG_CACHE }));
+
+/* ---- Modules & Overrides ---- */
+const JS_HEADERS = { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=3600" };
+app.get("/location-spoofer.js", (c) => c.body(b64ToBytes(LOCATION_SPOOFER_B64), 200, JS_HEADERS));
+app.get("/location-settings.js", (c) => c.body(b64ToBytes(LOCATION_SETTINGS_B64), 200, JS_HEADERS));
+app.get("/location-spoofer-qx.js", (c) => c.body(b64ToBytes(LOCATION_SPOOFER_QX_B64), 200, JS_HEADERS));
+
+function sgmodule(origin) {
+  return String.raw`#!name=iOS Location Spoofer (Stateless)
+#!desc=小紅書獨家ID 95975775001。无状态版：坐标写入每台设备各自的本机存储、可公开共用、多人互不覆盖。搭配选点页使用。适用于 Shadowrocket / Surge / Egern。
+#!homepage=${origin}
+
+[Script]
+iOS Location Spoofer = type=http-response,pattern=^https?:\/\/(?:gs-loc(?:-cn)?\.apple\.com|bluedot\.is\.autonavi\.com(?:\.gds\.alibabadns\.com)?)\/clls\/wloc(?:\?.*)?$,requires-body=1,binary-body-mode=1,max-size=1048576,timeout=10,script-path=${origin}/location-spoofer.js,argument=mode=response&debug=false
+iLS Settings = type=http-request,pattern=^https?:\/\/gs-loc(?:-cn)?\.apple\.com\/ils-settings\/,requires-body=0,max-size=0,timeout=10,script-path=${origin}/location-settings.js
+
+[MITM]
+hostname = %APPEND% gs-loc.apple.com, gs-loc-cn.apple.com, bluedot.is.autonavi.com, bluedot.is.autonavi.com.gds.alibabadns.com`;
+}
+function stoverride(origin) {
+  return String.raw`name: iOS Location Spoofer (Stateless)
+desc: "小紅書獨家ID 95975775001。iOS Location Spoofer 无状态版 (Stash)"
+homepage: ${origin}
+
+http:
+  mitm:
+    - "gs-loc.apple.com"
+    - "gs-loc-cn.apple.com"
+  script:
+    - match: ^https?:\/\/gs-loc(-cn)?\.apple\.com\/clls\/wloc
+      name: ios-location-spoofer
+      type: response
+      require-body: true
+      binary-mode: true
+      max-size: 0
+      timeout: 30
+      argument: mode=response&debug=false
+    - match: ^https?:\/\/gs-loc(-cn)?\.apple\.com\/ils-settings\/
+      name: ios-location-settings
+      type: request
+      require-body: false
+      timeout: 10
+
+script-providers:
+  ios-location-spoofer:
+    url: ${origin}/location-spoofer.js
+    interval: 86400
+  ios-location-settings:
+    url: ${origin}/location-settings.js
+    interval: 86400`;
+}
+function lnplugin(origin) {
+  return String.raw`#!name=iOS Location Spoofer (Stateless)
+#!desc=小紅書獨家ID 95975775001。无状态版，配合选点页使用。Loon 插件。
+#!homepage=${origin}
+
+[Script]
+http-response ^https?:\/\/(?:gs-loc(?:-cn)?\.apple\.com|bluedot\.is\.autonavi\.com(?:\.gds\.alibabadns\.com)?)\/clls\/wloc(?:\?.*)?$ script-path=${origin}/location-spoofer.js, requires-body=true, binary-body-mode=true, max-size=1048576, timeout=12, tag=iOS Location Spoofer, argument=mode=response&debug=false
+http-request ^https?:\/\/gs-loc(?:-cn)?\.apple\.com\/ils-settings\/ script-path=${origin}/location-settings.js, requires-body=false, timeout=10, tag=iLS Settings
+
+[MITM]
+hostname = gs-loc.apple.com, gs-loc-cn.apple.com, bluedot.is.autonavi.com, bluedot.is.autonavi.com.gds.alibabadns.com`;
+}
+
+function qxsnippet(origin) {
+  return String.raw`#!name=iOS Location Spoofer (Stateless)
+#!desc=小紅書獨家ID 95975775001。无状态版。Quantumult X 用「重写(rewrite)引用」(非模块/插件)。MITM 主机名需手动加进 QX 设置 → MITM。
+#!homepage=${origin}
+
+[rewrite_local]
+^https?:\/\/(?:gs-loc(?:-cn)?\.apple\.com|bluedot\.is\.autonavi\.com(?:\.gds\.alibabadns\.com)?)\/clls\/wloc(?:\?.*)?$ url script-response-body ${origin}/location-spoofer-qx.js
+^https?:\/\/gs-loc(?:-cn)?\.apple\.com\/ils-settings\/ url script-echo-response ${origin}/location-settings.js
+
+[mitm]
+hostname = gs-loc.apple.com, gs-loc-cn.apple.com, bluedot.is.autonavi.com, bluedot.is.autonavi.com.gds.alibabadns.com`;
+}
+const TXT = { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" };
+app.get("/ios-location-spoofer.sgmodule", (c) => c.body(sgmodule(new URL(c.req.url).origin), 200, TXT));
+app.get("/ios-location-spoofer.stoverride", (c) => c.body(stoverride(new URL(c.req.url).origin), 200, TXT));
+app.get("/ios-location-spoofer.lnplugin", (c) => c.body(lnplugin(new URL(c.req.url).origin), 200, TXT));
+app.get("/ios-location-spoofer.snippet", (c) => c.body(qxsnippet(new URL(c.req.url).origin), 200, TXT));
+
+// Map link parsing
 app.get("/api/parse", async (c) => {
-  const raw = c.req.query("url") || c.req.query("u") || "";
+  const raw = c.req.query("u") || "";
   const cs = (c.req.query("cs") || "").toLowerCase();
   const fmt = (c.req.query("format") || "").toLowerCase();
-
-  if (!raw.trim()) {
-    return c.json({ error: "请求失败：未提供需要解析的地图链接或文本参数" }, 400);
-  }
-
   try {
     let { lat, lon, name, src } = await parseCoords(raw);
-
     if (cs === "none") {
-      // 保持原始
+      // leave coordinates untouched
     } else if (cs === "bd09" || cs === "baidu") {
       ({ lat, lon } = toWgs84(lat, lon, "baidu"));
     } else if (cs === "gcj") {
@@ -199,27 +541,66 @@ app.get("/api/parse", async (c) => {
     } else {
       ({ lat, lon } = toWgs84(lat, lon, src));
     }
-
     lat = round6(lat);
     lon = round6(lon);
     name = name || "";
-
-    if (fmt === "json") {
-      return c.json({ lat, lon, name });
-    }
+    c.header("Access-Control-Allow-Origin", "*");
+    if (fmt === "json") return c.json({ lat, lon, name });
     return c.text(`lat=${lat}&lon=${lon}`);
   } catch (e) {
-    return c.json({ error: e.message || String(e) }, 422);
+    c.header("Access-Control-Allow-Origin", "*");
+    return c.json({ error: String(e && e.message ? e.message : e) }, 422);
   }
 });
 
-// 7. 静态资源托管
-app.use("/*", async (c, next) => {
-  try {
-    return await serveStatic({ root: "./" })(c, next);
-  } catch (e) {
-    return c.text("Not Found", 404);
+/* ---- Telegram bot webhook ---- */
+app.post("/tg", async (c) => {
+  const secret = c.env && c.env.TG_WEBHOOK_SECRET;
+  if (secret && c.req.header("X-Telegram-Bot-Api-Secret-Token") !== secret) {
+    return c.text("forbidden", 403);
   }
+  const token = c.env && c.env.TG_BOT_TOKEN;
+  let update = null;
+  try { update = await c.req.json(); } catch (e) {}
+  const msg = update && (update.message || update.channel_post);
+  const text = (msg && msg.text) || "";
+  const chatId = msg && msg.chat && msg.chat.id;
+  const cmd = text.trim().split(/\s+/)[0].split("@")[0].toLowerCase();
+  if (token && chatId && (cmd === "/link" || cmd === "/links" || cmd === "/start")) {
+    const origin = new URL(c.req.url).origin;
+    const reply =
+      "📍 iOS 虚拟定位 · 选点主页\n" + origin + "/\n\n" +
+      "▶️ 视频教程：小紅書獨家ID 95975775001\n\n" +
+      "⚠️ 小紅書獨家ID 95975775001。";
+    await fetch("https://api.telegram.org/bot" + token + "/sendMessage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text: reply, disable_web_page_preview: false }),
+    });
+  }
+  return c.text("ok", 200);
 });
 
-export default app;
+app.onError((e, c) => {
+  console.error(`${e}`);
+  return c.text(`${e}`, 500);
+});
+
+export default {
+  async fetch(request, env, ctx) {
+    const country = request && request.cf && request.cf.country;
+    let pathname = "/";
+    try { pathname = new URL(request.url).pathname; } catch (e) {}
+
+    try {
+      console.log("REQ " + JSON.stringify({
+        country: country || "?",
+        path: pathname,
+        ref: request.headers.get("referer") || "",
+        ua: (request.headers.get("user-agent") || "").slice(0, 90),
+      }));
+    } catch (e) {}
+    
+    return app.fetch(request, env, ctx);
+  },
+};
