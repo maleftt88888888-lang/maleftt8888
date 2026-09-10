@@ -161,7 +161,22 @@ app.get("/api/admin/keys", async (c) => {
 
   return c.json({ success: true, data: list });
 });
-
+// 搜索地点代理接口（解决不挂代理搜不出地点的问题）
+app.get('/api/search', async (c) => {
+  const q = c.req.query('q');
+  if (!q) {
+    return c.json({ success: false, error: 'Missing query' }, 400);
+  }
+  try {
+    const searchRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)' }
+    });
+    const data = await searchRes.json();
+    return c.json({ success: true, data });
+  } catch (e) {
+    return c.json({ success: false, error: e.message }, 500);
+  }
+});
 // 6. 坐标解析 API
 app.get("/api/parse", async (c) => {
   const raw = c.req.query("url") || c.req.query("u") || "";
