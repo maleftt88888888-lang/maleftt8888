@@ -21,6 +21,7 @@ export function safeDecode(s) {
 //  高德 ?q=纬度,经度,名称           (新版分享链, 逗号或 %2C)
 //  纯文本 纬度,经度
 //  高德 URI ?lnglat=/?position=经度,纬度  (与上面几条顺序相反)
+//  高德移动端拆分参数 lng=经度&lat=纬度 (surl.amap.com 重定向后常见)
 // opts.allowBare=false 时不启用"两个裸小数"兜底。扫描页面正文必须关掉它:
 // 正文里任何一对小数都会命中(百度页面的 "view_dir":"-0.8477,0.0000" 就是如此),
 // 结果是静默返回一个错误坐标 —— 比解析失败危险得多。
@@ -44,27 +45,45 @@ function extractRaw(s, opts) {
   const allowBare = !opts || opts.allowBare !== false;
   const str = String(s);
   let m;
+
   // 前缀 (?:^|[?&]) 是必需的: 无锚定时 "ll=" 会匹配任何以 ll 结尾的参数名,
   // 例如 scroll=1.5,2.5 / pull=... 都会被当成坐标。
   m = str.match(/(?:^|[?&])(?:coordinate|ll|sll)=(-?\d{1,3}\.\d+)(?:,|%2C)(-?\d{1,3}\.\d+)/i);
   if (m) return { lat: +m[1], lon: +m[2], name: queryName(str), src: "apple" };
+
   // Google: !3d<lat>!4d<lon> 是地点针脚的真实坐标, 必须优先于 @lat,lon —— 后者是
   // 相机视口中心, 与缩放级别绑定, 可以离目标十几公里。
   m = str.match(/!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/);
   if (m) return { lat: +m[1], lon: +m[2], name: googleName(str), src: "google" };
+
   m = str.match(
     /[?&]p=[^,&%]*(?:,|%2C)(-?\d{1,3}\.\d+)(?:,|%2C)(-?\d{1,3}\.\d+)(?:(?:,|%2C)((?:(?!,|%2C|&).)+))?/i
   );
   if (m) return { lat: +m[1], lon: +m[2], name: m[3] ? safeDecode(m[3]) : "", src: "amap" };
+
   m = str.match(
-    /[?&]q=(-?\d{1,3}\.\d+)(?:,|%2C)(-?\d{1,3}\.\d+)(?:(?:,|%2C)((?:(?!,|%2C|&).)+))?/i
+    /[?&]q=(-?\d{1,3}\.\d+)(?:,|%2C)(-?\d{1,3}\.\d+)(?:(?:,|%2C|&sname=)([^&]+))?/i
   );
-  if (m) return { lat: +m[1], lon: +m[2], name: m[3] ? safeDecode(m[3]) : "", src: "amap" };
+  if (m) return { lat: +m[1], lon: +m[2], name: m[3] ? safeDecode(m[3]) : queryName(str), src: "amap" };
+
   // 高德 URI API 的 lnglat= / position= 是「经度,纬度」序, 与上面所有规则相反。
   // 不要照搬旧页面里的 location=/center= 规则: 那条也按 lon,lat 解, 但百度的
   // location= 实际是 lat,lng, 搬过来会把百度链接解颠倒。宁可少认一种也不要认错。
   m = str.match(/(?:^|[?&])(?:lnglat|position)=(-?\d{1,3}\.\d+)(?:,|%2C)(-?\d{1,3}\.\d+)/i);
   if (m) return { lat: +m[2], lon: +m[1], name: queryName(str), src: "amap" };
+
+  // 高德移动端/短链重定向独立参数: lng=经度&lat=纬度 或 lat=纬度&lng=经度
+  const lngM = str.match(/[?&](?:lng|longitude)=(-?\d{1,3}\.\d+)/i);
+  const latM = str.match(/[?&](?:lat|latitude)=(-?\d{1,3}\.\d+)/i);
+  if (lngM && latM) {
+    return {
+      lat: +latM[1],
+      lon: +lngM[1],
+      name: queryName(str),
+      src: "amap"
+    };
+  }
+
   // 百度网页版把 BD09MC 米制坐标写进路径: /poi/名称/@12709535.375,2529761.45,19z
   // 位数(6~9)本身就把它和经纬度形式的 @ 区分开了。
   // 这是港澳台百度链接在服务端唯一能拿到坐标的形式 —— 那些地区的分享短链展开后
@@ -74,19 +93,22 @@ function extractRaw(s, opts) {
     const bd = bd09mcToBd09(+m[1], +m[2]);
     if (bd) return { lat: bd.lat, lon: bd.lon, name: baiduPathName(str), src: "baidu" };
   }
+
   // 只有在没有针脚坐标时才退而求其次用视口中心。
   m = str.match(/\/maps\/[^\s]*@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);
   if (m) return { lat: +m[1], lon: +m[2], name: googleName(str), src: "google" };
+
   if (allowBare) {
     m = str.match(/(-?\d{1,3}\.\d{4,})\s*(?:,|%2C)\s*(-?\d{1,3}\.\d{4,})/);
     if (m) return { lat: +m[1], lon: +m[2], name: "", src: "text" };
   }
+
   return null;
 }
 
-// 查询串里的 ?name=/ &name= —— 苹果地图和高德 URI 都用这个键。
+// 查询串里的 ?name=/ &name=/ &sname=/ &keywords= —— 兼容苹果、高德多种参数
 function queryName(str) {
-  const m = str.match(/[?&]name=([^&]+)/i);
+  const m = str.match(/[?&](?:name|sname|keywords)=([^&]+)/i);
   return m ? safeDecode(m[1]) : "";
 }
 
@@ -265,23 +287,6 @@ export function bd09ToGcj02(lat, lon) {
 }
 
 // ---- 港澳台: 苹果/Google 在这三地发的是 WGS84 ----
-//
-// GCJ-02 的偏移只施加于中国大陆, 但 gcjOutOfChina 是个粗矩形, 把港澳台整个圈在
-// 里面, 于是对本来就是 WGS84 的坐标白做一次反算, 实测偏约 570~600 米。
-//
-// 关键在于: 这不是一个纯地理判断, 必须按来源区分。高德在香港的瓦片实测仍是
-// GCJ-02(把卫星图和高德图放在同一坐标上比对, 差 596 米, 与大陆同量级), 百度的
-// BD-09 建在 GCJ 之上同理。所以只有 apple/google 才在港澳台跳过换算。
-//
-// 实测基准(链接原始值即真值, 与设备 GPS 逐位相同):
-//   香港 ifc mall       22.284774, 114.159437
-//   澳门 Galaxy Macau   22.148148, 113.555399
-//   台北 101            25.033626, 121.564215
-
-// 香港必须用多边形而不是矩形: 任何包住香港的矩形都会把深圳南山/福田一起圈进去,
-// 而深圳正是本项目最常用的坐标区域。北界沿深圳河与深圳湾, 自西向东抬升。
-// 这条线是近似的, 口岸一带(罗湖/落马洲/沙头角)两侧约 1 公里内可能判错 ——
-// 那些地方本身就骑在边界上, 无法用几个折点分清。
 const HK_POLY = [
   [113.8, 22.1],
   [113.8, 22.43],
@@ -296,7 +301,6 @@ const HK_POLY = [
   [114.5, 22.1],
 ];
 
-// 射线法。poly 的点是 [经度, 纬度]。
 function pointInPoly(lat, lon, poly) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -307,28 +311,19 @@ function pointInPoly(lat, lon, poly) {
   return inside;
 }
 
-// 澳门与珠海拱北只隔一道关闸(约 250 米), 矩形分不开; 北界取关闸纬度, 误判范围
-// 限于口岸那一小片。
 function inMacau(lat, lon) {
   return lat >= 22.1 && lat <= 22.215 && lon >= 113.525 && lon <= 113.605;
 }
 
-// 台湾本岛 + 澎湖。金门/马祖紧贴厦门与福州, 用矩形圈会误伤大陆, 故不含。
 function inTaiwan(lat, lon) {
   return lat >= 21.85 && lat <= 25.35 && lon >= 119.3 && lon <= 122.1;
 }
 
-// 该来源在该位置是否直接提供 WGS84(即不需要做 GCJ 反算)。
 export function usesWgs84Locally(lat, lon, src) {
   if (src !== "apple" && src !== "google") return false;
   return inMacau(lat, lon) || inTaiwan(lat, lon) || pointInPoly(lat, lon, HK_POLY);
 }
 
-// 按来源把坐标统一换算到 WGS84。text 源(用户直接输入的裸坐标)视为已是 WGS84。
-//
-// 注意换算与分派的分工: gcj02ToWgs84 回答"这两个坐标系在此处相差多少", 这个关系
-// 在香港同样成立(高德就在用), 所以港澳台的例外不能塞进那个函数里 —— 否则就没法
-// 让苹果走一条路、高德走另一条路了。
 export function toWgs84(lat, lon, src) {
   if (src === "baidu") {
     const g = bd09ToGcj02(lat, lon);
@@ -341,8 +336,6 @@ export function toWgs84(lat, lon, src) {
   return { lat, lon };
 }
 
-// 百度页面正文里的 "x":"12686385.66","y":"2560876.53" —— BD09MC 米制。
-// 量级校验用于把它和页面里其它同名字段(像素坐标等)区分开。
 export function extractBaiduFromBody(body) {
   const m = String(body).match(/"x"\s*:\s*"?(-?\d+(?:\.\d+)?)"?\s*,\s*"y"\s*:\s*"?(-?\d+(?:\.\d+)?)"?/);
   if (!m) return null;
@@ -377,7 +370,6 @@ function gcjDeltaLon(x, y) {
   return r;
 }
 
-// WGS84 -> GCJ-02 (正向偏移), 与高德/苹果中国所用偏移一致。
 export function wgs84ToGcj02(lat, lon) {
   if (gcjOutOfChina(lon, lat)) return { lat, lon };
   let dLat = gcjDeltaLat(lon - 105.0, lat - 35.0);
@@ -391,9 +383,6 @@ export function wgs84ToGcj02(lat, lon) {
   return { lat: lat + dLat, lon: lon + dLon };
 }
 
-// GCJ-02 -> WGS84 (迭代反算, 亚米级)。
-// 单程反算在偏移梯度大的地区会残留 1~2m, 这里用不动点迭代收敛到 <0.1m,
-// 与高德自身的 WGS84->GCJ 逆运算严格对齐, 消除回看时的残差。
 export function gcj02ToWgs84(lat, lon) {
   if (gcjOutOfChina(lon, lat)) return { lat, lon };
   let wgsLat = lat;
