@@ -17,7 +17,7 @@ export function getPageHtml() {
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
 <style>
 :root {
-  --bg:#0a0c11; --card:#12161d; --card2:#191e28; --line:rgba(255,255,255,.06); --inset:rgba(255,255,255,.045);
+  --bg:#0a0c11; --card:#12161d; --card2:#191e28; --line:#242b38; --inset:rgba(255,255,255,.045);
   --cyan:#17c3cf; --cyan2:#0e97a1; --green:#22c55e; --red:#ff5b60; --orange:#f5a623;
   --txt:#eef2f8; --muted:#8a93a5; --mono:#7fe3ea;
   --blue:#17c3cf; --gray:#8a93a5;
@@ -26,7 +26,11 @@ export function getPageHtml() {
 body {
   font-family:-apple-system,system-ui,"SF Pro","Helvetica Neue",sans-serif;
   color:var(--txt);
-  background:var(--bg);
+  background:
+    radial-gradient(900px 380px at 50% -120px, rgba(23,195,207,.14), transparent 70%),
+    radial-gradient(600px 300px at 92% 6%, rgba(34,197,94,.07), transparent 65%),
+    var(--bg);
+  background-attachment:fixed;
 }
 ::placeholder { color:#5d6675; }
 ::-webkit-scrollbar { width:6px; height:6px; }
@@ -36,7 +40,10 @@ body {
 .topbar { position:sticky; top:0; z-index:1200; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 14px; background:rgba(10,12,17,.88); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); font-size:11px; color:var(--muted); }
 .topbar .back { flex:none; color:var(--cyan); font-weight:700; text-decoration:none; font-size:12.5px; }
 
-.disclaimer-bar { padding:10px 14px; font-size:12px; color:var(--muted); text-align:center; border-bottom:1px solid var(--line); background:var(--card); }
+/* ---- info box: cyan/dark themed and fused with page style ---- */
+.redbox { margin:12px 12px 0; padding:13px 15px; background:linear-gradient(180deg,rgba(23,195,207,.12),rgba(23,195,207,.04)); border:1px solid rgba(23,195,207,.35); border-left:5px solid var(--cyan); border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,.35); }
+.redbox .rb { color:var(--txt); font-size:13px; font-weight:600; line-height:1.6; }
+.wechat-pill { display:inline-flex; align-items:center; gap:6px; background:rgba(23,195,207,.18); border:1px solid rgba(23,195,207,.4); padding:2px 8px; border-radius:6px; font-family:"SF Mono",ui-monospace,monospace; color:var(--mono); font-weight:700; margin:0 4px; }
 
 /* ---- map + its glass controls ---- */
 #map { height:50vh; width:100%; min-height:250px; background:#0a0c11; border-bottom:1px solid var(--line); }
@@ -49,9 +56,10 @@ body {
 
 .panel { padding:16px; max-width:600px; margin:0 auto; padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
 
-/* ---- glass cards (removed cyan accent and sharp borders) ---- */
-.card { background:linear-gradient(180deg,rgba(25,30,40,.6),rgba(18,22,29,.6)); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:0 8px 28px rgba(0,0,0,.25); }
+/* ---- glass cards ---- */
+.card { background:linear-gradient(180deg,rgba(25,30,40,.72),rgba(18,22,29,.72)); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:0 8px 28px rgba(0,0,0,.34); }
 .card h3 { font-size:15px; font-weight:700; margin-bottom:12px; color:var(--txt); display:flex; align-items:center; gap:8px; }
+.card h3::before { content:""; width:3px; height:14px; border-radius:2px; background:linear-gradient(180deg,var(--cyan),var(--green)); flex:none; }
 
 .coords { font-family:"SF Mono",ui-monospace,monospace; font-size:13.5px; color:var(--muted); padding:10px 12px; background:var(--inset); border:1px solid var(--line); border-radius:10px; word-break:break-all; }
 .crow { display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--inset); border:1px solid var(--line); border-radius:10px; margin-bottom:6px; }
@@ -83,7 +91,7 @@ body {
 
 .status { font-size:12px; color:var(--muted); margin-top:8px; text-align:center; }
 .hint { font-size:11px; color:#6b7484; margin-top:8px; line-height:1.6; }
-.accnote { margin-top:10px; padding:11px 13px; background:var(--inset); border:1px solid var(--line); border-radius:9px; font-size:11.5px; color:#a8b1c0; line-height:1.85; }
+.accnote { margin-top:10px; padding:11px 13px; background:var(--inset); border:1px solid var(--line); border-left:3px solid var(--cyan); border-radius:9px; font-size:11.5px; color:#a8b1c0; line-height:1.85; }
 .accnote b { display:block; color:var(--cyan); font-weight:800; font-size:12px; margin-bottom:6px; letter-spacing:.3px; }
 .accnote code { font-family:"SF Mono",ui-monospace,monospace; color:var(--mono); font-size:11px; }
 .accnote em { color:var(--txt); font-style:normal; font-weight:800; }
@@ -96,7 +104,7 @@ body {
 .search-item .si-name { font-size:14px; color:var(--txt); font-weight:600; }
 .search-item .si-sub { font-size:11px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-.error-banner { background:rgba(255,91,96,.12); border:1px solid rgba(255,91,96,.3); color:#ffdcdc; padding:14px 16px; border-radius:12px; margin-bottom:12px; font-size:13.5px; line-height:1.6; display:none; }
+.error-banner { background:linear-gradient(180deg,rgba(255,91,96,.18),rgba(255,91,96,.08)); border:1px solid rgba(255,91,96,.5); border-left:4px solid var(--red); color:#ffdcdc; padding:14px 16px; border-radius:12px; margin-bottom:12px; font-size:13.5px; line-height:1.6; display:none; }
 .error-banner b { display:block; margin-bottom:4px; color:#ff6b70; font-size:14.5px; }
 
 .toast { position:fixed; top:60px; left:50%; transform:translateX(-50%); background:rgba(8,10,14,.92); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid var(--line); color:#fff; padding:11px 20px; border-radius:22px; font-size:14px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:9999; max-width:90vw; text-align:center; box-shadow:0 8px 28px rgba(0,0,0,.5); }
@@ -146,8 +154,12 @@ body {
   <a class="back" href="/">← 主页</a>
 </div>
 
-<div class="disclaimer-bar">
-  仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。
+<div class="redbox">
+  <div class="rb">
+    中国大陆微信技术售后：<span class="wechat-pill">LLME-love</span>
+    <button class="btn btn-sm btn-secondary" style="padding:2px 8px;font-size:11px;" onclick="copyText('LLME-love').then(()=>toast('已复制微信号: LLME-love'))">复制微信</button>
+    <div style="margin-top:6px;font-size:12.5px;color:var(--muted);opacity:.95;">仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
+  </div>
 </div>
 
 <div style="position:relative">
@@ -269,7 +281,7 @@ const I18N = {
     alt_querying: '海拔查询中…', alt_na: '海拔不可用',
     alt_hint: '海拔由 Open-Meteo 自动查询（WGS-84），储存到设备时随经纬度一并写入，由 iOS Location Spoofer 模块生效。',
     acc_note_html: '<b>精度参数怎么填</b>' +
-      '<code>horizontalAccuracy</code> 水平精度（米），默认 <em>39</em>，越小越准——想更像 GPS 可设 <em>5~15</em>；保持 <em>39</em> 也正常。<br>' +
+      '<code>horizontalAccuracy</code> 水平精度（米），默认 <em>39</em>，越小越「精准」—— 想更像 GPS 可设 <em>5~15</em>；保持 <em>39</em> 也正常。<br>' +
       '<code>verticalAccuracy</code> 垂直精度（米），默认 <em>1000</em> —— 本页已自动填入目标点真实海拔，可调小到 <em>10~30</em>，让海拔显得更可信。<br>' +
       '<code>扰动半径</code>（米），默认 <em>0</em>（关闭）—— 设为 <em>N</em> 后，每次定位在目标点周围 <em>N</em> 米内随机偏移，避免每次结果一模一样。想固定在精确坐标就留 <em>0</em>。' +
       '<span class="src">参数建议来自上游项目 mekos2772 / ios-location-spoofer</span>',
@@ -320,7 +332,7 @@ const I18N = {
     alt_querying: 'querying altitude…', alt_na: 'altitude unavailable',
     alt_hint: 'Altitude is auto-filled from Open-Meteo (WGS-84), written to the device on Save, and applied by the iOS Location Spoofer module.',
     acc_note_html: '<b>Choosing the accuracy values</b>' +
-      '<code>horizontalAccuracy</code> in metres, default <em>39</em> — the smaller, the more precise it looks. Set <em>5–15</em> to look more like GPS; <em>39</em> is perfectly fine too.<br>' +
+      '<code>horizontalAccuracy</code> in metres, default <em>39</em> — the smaller, the more "precise" it looks. Set <em>5–15</em> to look more like GPS; <em>39</em> is perfectly fine too.<br>' +
       '<code>verticalAccuracy</code> in metres, default <em>1000</em> — this page already fills in the target\\'s real altitude, so lowering it to <em>10–30</em> makes that altitude look more credible.<br>' +
       '<code>Jitter radius</code> in metres, default <em>0</em> (off) — set to <em>N</em> and each positioning is randomly offset within <em>N</em> m of the target, so results are never identical. Leave <em>0</em> to stay pinned to the exact point.' +
       '<span class="src">Guidance from the upstream project mekos2772 / ios-location-spoofer</span>',
@@ -567,7 +579,7 @@ function renderFavs() {
   el.innerHTML = favs.map((f, i) => {
     const isActive = activeLon !== null && Math.abs(f.lon - activeLon) < 0.000001 && Math.abs(f.lat - activeLat) < 0.000001;
     const altStr = (typeof f.alt === 'number') ? ('  ·  ' + f.alt + ' m') : '';
-    return '<div class="fav-item" onclick="loadFav(' + i + ')') + '">' +
+    return '<div class="fav-item" onclick="loadFav(' + i + ')">' +
       '<div class="fav-info">' +
         '<div class="fav-name">' + escHtml(f.name) + '<\\/div>' +
         '<div class="fav-coords">' + f.lon.toFixed(6) + ', ' + f.lat.toFixed(6) + altStr + '<\\/div>' +
@@ -737,7 +749,7 @@ function locateMe() {
 function parseLocalCoords(text) {
   const m = text.match(/(-?[0-9]+\\.[0-9]+)[,\\s]+(-?[0-9]+\\.[0-9]+)/);
   if (!m) return null;
-  const a = parseFloat(m), b = parseFloat(m[2]);
+  const a = parseFloat(m), b = parseFloat(m);
   if (Math.abs(a) <= 90 && Math.abs(b) <= 180) return { lat: a, lon: b };
   if (Math.abs(b) <= 90 && Math.abs(a) <= 180) return { lat: b, lon: a };
   return { lat: a, lon: b };
