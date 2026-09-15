@@ -1,7 +1,7 @@
 export function getLandingHtml() {
   return `<!DOCTYPE html>
 <html lang="zh-CN">
-<head> 
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>iOS Location Spoofer · 虚拟定位</title>
@@ -17,7 +17,7 @@ export function getLandingHtml() {
 }
 *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 body{
-  font-family:-apple-system,system-ui,"SF Pro","Helvetica Neue",sans-serif;
+  font-family:-apple-system,BlinkMacSystemFont,system-ui,"SF Pro","Helvetica Neue",sans-serif;
   color:var(--txt); line-height:1.5;
   background:
     radial-gradient(1100px 420px at 50% -140px, rgba(23,195,207,.16), transparent 70%),
@@ -30,42 +30,105 @@ body{
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='360' height='200'><text x='20' y='100' fill='%23ffffff' font-size='13' transform='rotate(-22, 180, 100)'>小红书独家技术ID95975775001 可乐加糖</text></svg>");
   background-repeat:repeat;
 }
-.wrap{ position:relative; z-index:1; max-width:600px; margin:0 auto; padding:20px 16px calc(44px + env(safe-area-inset-bottom)); }
+.wrap{ 
+  position:relative; z-index:1; max-width:600px; margin:0 auto; 
+  padding:20px 16px calc(44px + constant(safe-area-inset-bottom));
+  padding:20px 16px calc(44px + env(safe-area-inset-bottom)); 
+}
 
-header{ text-align:center; padding:8px 0 6px; }
+/* Header / Banner */
+header{ text-align:center; padding:12px 0 8px; }
 header .logowrap{ position:relative; width:74px; margin:0 auto 14px; }
-header .logo{ width:74px; height:74px; border-radius:20px; display:block; box-shadow:0 0 0 1px var(--line),0 10px 30px rgba(23,195,207,.28); margin:0 auto; }
-h1{ font-size:23px; font-weight:800; letter-spacing:.3px; background:linear-gradient(92deg,#eafcff,#7fe3ea 55%,#22c55e); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+header .logo{ width:74px; height:74px; border-radius:20px; display:block; box-shadow:0 0 0 1px var(--line),0 10px 30px rgba(23,195,207,.28); }
+h1{ font-size:22px; font-weight:800; letter-spacing:.3px; background:linear-gradient(92deg,#eafcff,#7fe3ea 55%,#22c55e); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
 .synced{ font-size:12px; color:#22c55e; font-weight:700; margin-top:8px; }
 
-/* 卡密管理区域 */
-.auth-box{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin:18px 0 10px; }
-.auth-title{ font-size:14px; font-weight:700; color:var(--mono); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
-.auth-input-group{ display:flex; gap:8px; margin-bottom:10px; }
-.auth-input{ flex:1; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px 12px; color:var(--txt); font-size:14px; outline:none; font-family:monospace; }
+/* 授权卡密面板（结合V2高质感卡片样式） */
+.auth-box{
+  background: linear-gradient(135deg, rgba(25,30,40,0.8), rgba(18,22,29,0.95));
+  border: 1px solid rgba(23,195,207,0.25);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 16px 0 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  backdrop-filter: blur(8px);
+}
+.auth-title{ font-size:13.5px; font-weight:700; color:var(--mono); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+.auth-input-group{ display:flex; gap:8px; }
+.auth-input{ flex:1; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px 12px; color:var(--txt); font-size:13.5px; outline:none; font-family:"SF Mono",ui-monospace,monospace; }
 .auth-input:focus{ border-color:var(--cyan); }
-.auth-btn{ padding:10px 14px; border:none; border-radius:10px; background:var(--cyan); color:#022a2d; font-weight:700; cursor:pointer; }
-.auth-sub-btn{ background:var(--card2); border:1px solid var(--line); color:var(--txt); font-size:12px; padding:6px 10px; border-radius:8px; cursor:pointer; }
+.auth-btn{ padding:10px 16px; border:none; border-radius:10px; background:linear-gradient(135deg,var(--cyan),var(--cyan2)); color:#022a2d; font-weight:800; cursor:pointer; }
+.auth-sub-btn{ background:rgba(23,195,207,0.1); border:1px solid rgba(23,195,207,0.25); color:var(--cyan); font-size:12px; padding:6px 10px; border-radius:8px; cursor:pointer; font-weight:600; transition:all .15s; }
+.auth-sub-btn:active{ transform:scale(.95); }
 
-.ctas{ display:flex; gap:10px; margin:10px 0 4px; }
+/* 主操作按钮 */
+.ctas{ display:flex; gap:10px; margin:12px 0; }
 .enter{ flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:17px 14px; border:none; border-radius:14px; font-size:16px; font-weight:800; cursor:pointer; text-decoration:none; transition:transform .12s,box-shadow .12s; }
 .enter:active{ transform:scale(.97); }
 .enter.go{ background:linear-gradient(135deg,#2ee06a,#129a44); color:#04240f; box-shadow:0 10px 26px rgba(34,197,94,.34); }
 
+/* V2 风格微信联系卡片 */
+.wechat-box{
+  background: linear-gradient(135deg, rgba(25,30,40,0.8), rgba(18,22,29,0.95));
+  border: 1px solid rgba(23,195,207,0.2);
+  border-radius: 14px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  backdrop-filter: blur(8px);
+  margin-bottom: 4px;
+}
+.wechat-info{ display:flex; align-items:center; gap:10px; }
+.wechat-icon{ font-size:18px; }
+.wechat-text{ display:flex; flex-direction:column; }
+.wechat-label{ font-size:12px; color:var(--muted); font-weight:500; }
+.wechat-id{ font-family:"SF Mono",ui-monospace,monospace; font-size:14px; color:var(--mono); font-weight:700; letter-spacing:.5px; }
+.wechat-copy{
+  padding: 6px 14px;
+  background: rgba(23,195,207,0.12);
+  border: 1px solid rgba(23,195,207,0.3);
+  border-radius: 8px;
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.wechat-copy:active{ transform:scale(.95); background:rgba(23,195,207,0.25); }
+.wechat-copy.ok{ background:var(--green); border-color:var(--green); color:#04240f; }
+
 .divider{ height:1px; background:linear-gradient(90deg,transparent,var(--line),transparent); margin:24px 0 20px; }
 
+/* 标题与说明框 */
 h2{ font-size:16px; font-weight:800; margin-bottom:4px; display:flex; align-items:center; gap:9px; }
 h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:linear-gradient(180deg,var(--cyan),var(--green)); }
 .sub{ font-size:12.5px; color:var(--muted); margin:0 0 14px 13px; }
-.note{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--cyan); border-radius:11px; padding:12px 14px; font-size:12.5px; color:#c3ccdb; margin-bottom:16px; }
+.note{ 
+  background:var(--card); 
+  border:1px solid var(--line); 
+  border-radius:14px; 
+  padding:14px 16px; 
+  font-size:12.5px; 
+  color:#c3ccdb; 
+  line-height:1.6;
+  margin-bottom:16px; 
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+}
 
-.plat{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:12px; cursor:pointer; }
-.plat .big{ display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px; border:none; border-radius:11px; background:linear-gradient(135deg,var(--cyan),var(--cyan2)); color:#022a2d; font-size:15.5px; font-weight:800; cursor:pointer; text-align:center; }
+/* 平台导入卡片 */
+.plat{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:12px; }
+.plat .big{ display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px; border:none; border-radius:11px; background:linear-gradient(135deg,var(--cyan),var(--cyan2)); color:#022a2d; font-size:15.5px; font-weight:800; cursor:pointer; text-align:center; transition:filter .12s,transform .12s; }
+.plat .big:active{ filter:brightness(1.1); transform:scale(.98); }
 .plat .line{ display:flex; align-items:center; gap:8px; margin-top:9px; }
 .plat .url{ flex:1; min-width:0; font-family:"SF Mono",ui-monospace,monospace; font-size:11px; color:var(--muted); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.plat .copy{ flex:none; padding:8px 15px; border:1px solid var(--line); border-radius:8px; background:var(--card2); color:var(--txt); font-size:12.5px; font-weight:600; cursor:pointer; }
+.plat .copy{ flex:none; padding:8px 15px; border:1px solid var(--line); border-radius:8px; background:var(--card2); color:var(--txt); font-size:12.5px; font-weight:600; cursor:pointer; transition:all .12s; }
+.plat .copy:active{ background:#2a3140; }
+.plat .copy.ok{ background:var(--green); border-color:var(--green); color:#04240f; }
 
-.mitm{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 15px; font-size:12.5px; color:#c3ccdb; margin-top:16px; }
+/* MITM 主机名展示 */
+.mitm{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; font-size:12.5px; color:#c3ccdb; margin-top:16px; }
 .mitm code{ display:inline-block; font-family:"SF Mono",ui-monospace,monospace; font-size:11.5px; color:var(--mono); word-break:break-all; line-height:2; }
 .mitm .hosts{ margin-top:8px; padding:10px 12px; background:var(--bg); border:1px solid var(--line); border-radius:9px; }
 
@@ -73,6 +136,8 @@ h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:li
 .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
 footer{ text-align:center; font-size:11.5px; color:var(--muted); margin-top:26px; line-height:1.9; }
+footer a{ color:var(--muted); text-decoration:none; }
+footer a:hover{ color:var(--cyan); }
 </style>
 </head>
 <body>
@@ -84,7 +149,7 @@ footer{ text-align:center; font-size:11.5px; color:var(--muted); margin-top:26px
     <p class="synced">✅ 已同步上游：随机扰动半径 · 港澳台/百度坐标解析</p>
   </header>
 
-  <!-- 卡密激活与换绑 -->
+  <!-- 卡密激活与换绑 (V1功能) -->
   <div class="auth-box">
     <div class="auth-title">
       <span>🔑 授权卡密状态</span>
@@ -96,33 +161,47 @@ footer{ text-align:center; font-size:11.5px; color:var(--muted); margin-top:26px
     </div>
   </div>
 
+  <!-- 主入口 (V1鉴权跳转) -->
   <div class="ctas">
     <button type="button" class="enter go" onclick="handleEnterPicker()">🗺️ 进入选点网页</button>
   </div>
 
+  <!-- 微信联系卡片 (复制V2) -->
+  <div class="wechat-box">
+    <div class="wechat-info">
+      <span class="wechat-icon">💬</span>
+      <div class="wechat-text">
+        <span class="wechat-label">中国大陆微信号</span>
+        <span class="wechat-id">LLME-love</span>
+      </div>
+    </div>
+    <button class="wechat-copy" id="copyWechat">复制微信号</button>
+  </div>
+
   <div class="divider"></div>
 
-  <h2>安装模块</h2>
-  <p class="sub">点击卡片或「一键导入」直接装；或「复制」手动添加。</p>
-  <div class="note" style="font-size: 15px; color: #ff5b60; line-height: 1.6;">📍 支持iOS 26+ 切换后可能需重启一次设备清缓存。</div>
-  
+  <h2>安装与使用说明</h2>
+  <p class="sub">点击「一键导入」直接安装到 Shadowrocket；或点击「复制」手动添加模块。</p>
+  <div class="note">📍 支持iOS 26+ 切换后可能需重启一次设备清缓存。生效前提：代理 App 已开启并连接、开启 HTTPS 解密 (MITM) 并信任证书。</div>
+
   <div id="plats">
-    <div class="plat" onclick="openShadowrocket()">
-      <button class="big" type="button">一键导入 Shadowrocket</button>
-      <div class="line" onclick="event.stopPropagation()">
+    <div class="plat">
+      <button class="big" type="button" onclick="openShadowrocket()">一键导入 Shadowrocket</button>
+      <div class="line">
         <span class="url" id="url-sr"></span>
-        <button class="copy" onclick="doCopy('ios-location-spoofer.sgmodule', this)">复制</button>
+        <button class="copy" onclick="doCopy('ios-location-spoofer.sgmodule', this, '已复制模块链接')">复制</button>
       </div>
     </div>
   </div>
 
+  <!-- MITM 证书信息 (V1保留) -->
   <div class="mitm">
     <b>MITM 主机名：</b>
     <div class="hosts"><code>gs-loc.apple.com<br>gs-loc-cn.apple.com<br>bluedot.is.autonavi.com<br>bluedot.is.autonavi.com.gds.alibabadns.com<br>gps-ssl.ls.apple.com</code></div>
   </div>
 
   <footer>
-    <a href="javascript:void(0)" onclick="openAdmin()" style="color:var(--muted); text-decoration:none;">后台管理系统</a><br>
+    <a href="javascript:void(0)" onclick="openAdmin()">后台管理系统</a><br>
     坐标只存在你<b>当前设备</b>上，服务端不留存记录。<br>
     GNU AGPL-3.0 · 仅供学习研究
   </footer>
@@ -131,6 +210,7 @@ footer{ text-align:center; font-size:11.5px; color:var(--muted); margin-top:26px
 <div class="toast" id="toast"></div>
 
 <script>
+// --- V1 完整业务逻辑代码 ---
 function saveKey() {
   var key = document.getElementById('licenseKey').value.trim();
   if(!key) return toast("请输入有效卡密");
@@ -203,30 +283,46 @@ function toast(m){
   setTimeout(function(){ t.classList.remove('show'); }, 1800); 
 }
 
+/* 升级版复制功能：兼容 HTTPS 安全上下文与 fallback 降级 */
 function copyText(s){
-  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(s);
-  return new Promise(function(res,rej){ 
-    try{ 
-      var ta=document.createElement('textarea'); 
-      ta.value=s; ta.style.position='fixed'; ta.style.opacity='0'; 
-      document.body.appendChild(ta); ta.select(); 
-      var ok=document.execCommand('copy'); 
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(s);
+  }
+  return new Promise(function(res, rej){ 
+    try { 
+      var ta = document.createElement('textarea'); 
+      ta.value = s; 
+      ta.style.position = 'fixed'; 
+      ta.style.opacity = '0'; 
+      document.body.appendChild(ta); 
+      ta.select(); 
+      var ok = document.execCommand('copy'); 
       document.body.removeChild(ta); 
-      ok?res():rej(); 
-    }catch(e){ rej(e); } 
+      ok ? res() : rej(); 
+    } catch(e){ rej(e); } 
   });
 }
 
-function doCopy(file, btn){ 
-  var fullUrl = location.origin + '/' + file;
+function doCopy(fileOrText, btn, successMsg){ 
+  var fullUrl = fileOrText.indexOf('http') === 0 ? fileOrText : location.origin + '/' + fileOrText;
   copyText(fullUrl).then(function(){ 
-    toast('已复制模块链接'); 
-    var o=btn.textContent; 
+    toast(successMsg || '已复制'); 
+    var o = btn.textContent; 
     btn.classList.add('ok'); 
-    btn.textContent='✓'; 
-    setTimeout(function(){ btn.textContent=o; btn.classList.remove('ok'); }, 1200); 
+    btn.textContent = '✓'; 
+    setTimeout(function(){ btn.textContent = o; btn.classList.remove('ok'); }, 1200); 
   }).catch(function(){ toast('复制失败，请手动选择'); }); 
 }
+
+// 绑定微信复制按钮
+document.addEventListener('DOMContentLoaded', function(){
+  var wcBtn = document.getElementById('copyWechat');
+  if(wcBtn){
+    wcBtn.addEventListener('click', function(){
+      doCopy('LLME-love', wcBtn, '已复制微信号: LLME-love');
+    });
+  }
+});
 
 window.onload = function() {
   document.getElementById('url-sr').textContent = location.origin + '/ios-location-spoofer.sgmodule';
