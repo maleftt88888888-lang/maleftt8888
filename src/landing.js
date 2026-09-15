@@ -26,11 +26,7 @@ body{
   background-attachment:fixed;
 }
 .watermark{
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  z-index:0;
-  opacity:0.12;
+  position:fixed; inset:0; pointer-events:none; z-index:0; opacity:0.12;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='360' height='200'><text x='20' y='100' fill='%23ffffff' font-size='13' transform='rotate(-22, 180, 100)'>小红书独家技术ID95975775001 可乐加糖</text></svg>");
   background-repeat:repeat;
 }
@@ -39,20 +35,52 @@ body{
 header{ text-align:center; padding:8px 0 6px; }
 header .logowrap{ position:relative; width:74px; margin:0 auto 14px; }
 header .logo{ width:74px; height:74px; border-radius:20px; display:block; box-shadow:0 0 0 1px var(--line),0 10px 30px rgba(23,195,207,.28); margin:0 auto; }
-h1{ font-size:23px; font-weight:800; letter-spacing:.3px; background:linear-gradient(92deg,#eafcff,#7fe3ea 55%,#22c55e); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+h1{ font-size:22px; font-weight:800; letter-spacing:.3px; background:linear-gradient(92deg,#eafcff,#7fe3ea 55%,#22c55e); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
 .synced{ font-size:12px; color:#22c55e; font-weight:700; margin-top:8px; }
 
-.ctas{ display:flex; gap:10px; margin:18px 0 4px; }
+.ctas{ display:flex; gap:10px; margin:18px 0 12px; }
 .enter{ flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:17px 14px; border:none; border-radius:14px; font-size:16px; font-weight:800; cursor:pointer; text-decoration:none; transition:transform .12s,box-shadow .12s; }
 .enter:active{ transform:scale(.97); }
 .enter.go{ background:linear-gradient(135deg,#2ee06a,#129a44); color:#04240f; box-shadow:0 10px 26px rgba(34,197,94,.34); }
+
+.wechat-box{
+  background: linear-gradient(135deg, rgba(25,30,40,0.8), rgba(18,22,29,0.95));
+  border: 1px solid rgba(23,195,207,0.2);
+  border-radius: 14px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  backdrop-filter: blur(8px);
+  margin-bottom: 4px;
+}
+.wechat-info{ display:flex; align-items:center; gap:10px; }
+.wechat-icon{ font-size:18px; }
+.wechat-text{ display:flex; flex-direction:column; }
+.wechat-label{ font-size:12px; color:var(--muted); font-weight:500; }
+.wechat-id{ font-family:"SF Mono",ui-monospace,monospace; font-size:14px; color:var(--mono); font-weight:700; letter-spacing:.5px; }
+.wechat-copy{
+  padding: 6px 14px;
+  background: rgba(23,195,207,0.12);
+  border: 1px solid rgba(23,195,207,0.3);
+  border-radius: 8px;
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.wechat-copy:active{ transform:scale(.95); background:rgba(23,195,207,0.25); }
+.wechat-copy.ok{ background:var(--green); border-color:var(--green); color:#04240f; }
 
 .divider{ height:1px; background:linear-gradient(90deg,transparent,var(--line),transparent); margin:24px 0 20px; }
 
 h2{ font-size:16px; font-weight:800; margin-bottom:4px; display:flex; align-items:center; gap:9px; }
 h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:linear-gradient(180deg,var(--cyan),var(--green)); }
 .sub{ font-size:12.5px; color:var(--muted); margin:0 0 14px 13px; }
-.note{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--cyan); border-radius:11px; padding:12px 14px; font-size:12.5px; color:#c3ccdb; margin-bottom:16px; }
+
+.note{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--cyan); border-radius:11px; padding:12px 14px; font-size:12.5px; color:#c3ccdb; margin-bottom:16px; line-height:1.6; }
 .note b{ color:var(--txt); }
 
 .plat{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:12px; cursor:pointer; transition:transform .12s, border-color .12s; }
@@ -88,25 +116,30 @@ footer b{ color:#8fe0e6; }
   </header>
 
   <div class="ctas">
-    <button type="button" class="enter go" onclick="handleEnterPicker()">🗺️ 进入选点网页</button>
+    <button type="button" class="enter go" id="btnEnter">🗺️ 进入选点网页</button>
+  </div>
+
+  <div class="wechat-box">
+    <div class="wechat-info">
+      <span class="wechat-icon">💬</span>
+      <div class="wechat-text">
+        <span class="wechat-label">中国大陆微信号</span>
+        <span class="wechat-id">LLME-love</span>
+      </div>
+    </div>
+    <button class="wechat-copy" id="copyWechat">复制微信号</button>
   </div>
 
   <div class="divider"></div>
 
-  <h2>安装模块</h2>
-  <p class="sub">点击卡片或「一键导入」直接装；或「复制」手动添加。</p>
-  <div class="note" style="font-size: 15px; color: #ff5b60; line-height: 1.6;">📍 支持iOS 26+ 切换后可能需重启一次设备清缓存。</div>
-  
-  <div id="plats">
-    <!-- Shadowrocket 卡片（点击整块区域触发导入） -->
-    <div class="plat" onclick="openShadowrocket()">
-      <button class="big" type="button">一键导入 Shadowrocket</button>
-      <div class="line" onclick="event.stopPropagation()">
-        <span class="url" id="url-sr"></span>
-        <button class="copy" onclick="doCopy('ios-location-spoofer.sgmodule', this)">复制</button>
-      </div>
-    </div>
+  <h2>安装与使用说明</h2>
+  <p class="sub">点击卡片或「一键导入」直接安装；或点击「复制」手动添加模块。</p>
+  <div class="note">
+    📍 <b>生效前提：</b>① 代理 App 已开启并连接（非「直连」模式）；② 开启 HTTPS 解密 (MITM) 并信任证书；③ 安装模块后选择位置点击「保存到设备」。<br>
+    <span style="color:#ff5b60;">* 支持 iOS 26+，切换定位后若未即时生效可尝试重启一次设备清理缓存。</span>
   </div>
+
+  <div id="plats"></div>
 
   <div class="mitm">
     <b>MITM 主机名（如全部配置成功仍不生效，在 MITM / HTTPS 解密中手动加入下面5个域名）：</b>
@@ -122,67 +155,123 @@ footer b{ color:#8fe0e6; }
 <div class="toast" id="toast"></div>
 
 <script>
-function handleEnterPicker() {
-  toast("正在验证权限...");
-  fetch('/api/check-auth')
-    .then(function(res) {
-      if (res.ok) {
-        window.location.href = "/picker";
-      } else {
-        toast("卡密已过期或失效，请重新登录");
-        setTimeout(function(){ location.reload(); }, 1200);
-      }
-    })
-    .catch(function() {
-      toast("网络异常，请稍后再试");
+(function(){
+  var origin = location.origin;
+  function u(file){ return origin + '/' + file; }
+
+  var PLATS = [
+    {
+      name: 'Shadowrocket',
+      file: 'ios-location-spoofer.sgmodule',
+      scheme: function(x){ return 'shadowrocket://install?module=' + encodeURIComponent(x); }
+    }
+  ];
+
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+  function toast(m){
+    var t = document.getElementById('toast');
+    t.textContent = m;
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 1800);
+  }
+
+  function copyText(s){
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(s);
+    }
+    return new Promise(function(res, rej){
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = s; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? res() : rej();
+      } catch(e){ rej(e); }
     });
-}
+  }
 
-function openShadowrocket() {
-  var origin = location.origin;
-  var moduleUrl = origin + '/ios-location-spoofer.sgmodule';
-  window.location.href = 'shadowrocket://install?module=' + encodeURIComponent(moduleUrl);
-}
+  function doCopy(s, btn, successMsg){
+    copyText(s).then(function(){
+      toast(successMsg || '已复制');
+      var o = btn.textContent;
+      btn.classList.add('ok');
+      btn.textContent = '✓';
+      setTimeout(function(){ btn.textContent = o; btn.classList.remove('ok'); }, 1200);
+    }).catch(function(){ toast('复制失败，请手动输入'); });
+  }
 
-function toast(m){ 
-  var t=document.getElementById('toast'); 
-  t.textContent=m; 
-  t.classList.add('show'); 
-  setTimeout(function(){ t.classList.remove('show'); }, 1800); 
-}
+  // 鉴权拦截跳转
+  var btnEnter = document.getElementById('btnEnter');
+  if(btnEnter){
+    btnEnter.addEventListener('click', function(){
+      toast("正在验证权限...");
+      fetch('/api/check-auth')
+        .then(function(res) {
+          if (res.ok) {
+            window.location.href = "/picker";
+          } else {
+            toast("卡密已过期或失效，请重新登录");
+            setTimeout(function(){ location.reload(); }, 1200);
+          }
+        })
+        .catch(function() {
+          toast("网络异常，请稍后再试");
+        });
+    });
+  }
 
-function copyText(s){
-  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(s);
-  return new Promise(function(res,rej){ 
-    try{ 
-      var ta=document.createElement('textarea'); 
-      ta.value=s; ta.style.position='fixed'; ta.style.opacity='0'; 
-      document.body.appendChild(ta); ta.select(); 
-      var ok=document.execCommand('copy'); 
-      document.body.removeChild(ta); 
-      ok?res():rej(); 
-    }catch(e){ rej(e); } 
-  });
-}
+  // 复制微信号
+  var wcBtn = document.getElementById('copyWechat');
+  if(wcBtn){
+    wcBtn.addEventListener('click', function(){
+      doCopy('LLME-love', wcBtn, '已复制微信号: LLME-love');
+    });
+  }
 
-function doCopy(file, btn){ 
-  var fullUrl = location.origin + '/' + file;
-  copyText(fullUrl).then(function(){ 
-    toast('已复制模块链接'); 
-    var o=btn.textContent; 
-    btn.classList.add('ok'); 
-    btn.textContent='✓'; 
-    setTimeout(function(){ btn.textContent=o; btn.classList.remove('ok'); }, 1200); 
-  }).catch(function(){ toast('复制失败，请手动选择'); }); 
-}
+  // 动态渲染平台列表
+  var html = '';
+  for (var i=0; i<PLATS.length; i++){
+    var p = PLATS[i];
+    var url = u(p.file);
+    var schemeUrl = p.scheme(url);
+    html += '<div class="plat" data-scheme="' + esc(schemeUrl) + '">' +
+      '<a class="big" href="' + esc(schemeUrl) + '">一键导入 ' + esc(p.name) + '</a>' +
+      '<div class="line" onclick="event.stopPropagation()">' +
+      '<span class="url">' + esc(url) + '</span>' +
+      '<button class="copy" data-url="' + esc(url) + '">复制</button>' +
+      '</div></div>';
+  }
 
-window.onload = function() {
-  var origin = location.origin;
-  var sgUrl = origin + '/ios-location-spoofer.sgmodule';
+  var platsContainer = document.getElementById('plats');
+  if(platsContainer){
+    platsContainer.innerHTML = html;
 
-  document.getElementById('url-sr').textContent = sgUrl;
-};
-</script>
+    // 整卡片点击支持
+    var platCards = platsContainer.querySelectorAll('.plat');
+    for (var k=0; k<platCards.length; k++){
+      (function(card){
+        card.addEventListener('click', function(){
+          var scheme = card.getAttribute('data-scheme');
+          if(scheme) window.location.href = scheme;
+        });
+      })(platCards[k]);
+    }
+
+    // 复制按钮解耦绑定
+    var btns = platsContainer.querySelectorAll('.copy');
+    for (var j=0; j<btns.length; j++){
+      (function(b){
+        b.addEventListener('click', function(e){
+          e.stopPropagation();
+          doCopy(b.getAttribute('data-url'), b, '已复制模块链接');
+        });
+      })(btns[j]);
+    }
+  }
+})();
+<\/script>
 </body>
 </html>`;
 }
