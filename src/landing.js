@@ -80,24 +80,26 @@ h2{ font-size:16px; font-weight:800; margin-bottom:4px; display:flex; align-item
 h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:linear-gradient(180deg,var(--cyan),var(--green)); }
 .sub{ font-size:12.5px; color:var(--muted); margin:0 0 14px 13px; }
 
-/* 完美裁切与层级排版的提示框样式 */
+/* 彻底解决穿透溢出的内嵌指示条样式 */
 .note{ 
   position: relative;
   background: var(--card); 
   border: 1px solid var(--line); 
-  border-radius: 12px; 
-  padding: 14px 16px 14px 18px; 
+  border-radius: 14px; 
+  padding: 14px 16px 14px 20px; 
   font-size: 12.5px; 
   color: #c3ccdb; 
   margin-bottom: 16px; 
   line-height: 1.6;
-  overflow: hidden;
 }
 .note::before{
   content: "";
   position: absolute;
-  left: 0; top: 0; bottom: 0;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
   width: 4px;
+  border-radius: 0 3px 3px 0;
   background: var(--cyan);
 }
 .note-item{ margin-bottom: 6px; }
@@ -138,8 +140,8 @@ footer b{ color:#8fe0e6; }
 <div class="wrap">
   <header>
     <div class="logowrap"><img class="logo" src="/icon.svg" alt="logo"></div>
-    <h1>小红书ID 95975775001 大陆微信号LLME-love ·可乐加糖 虚拟定位</h1>
-    <p class="synced">✅ 已同步上游：随机扰动半径 · 港澳台/百度坐标解析</p>
+    <h1>小红书独家版本  虚拟定位</h1>
+    <p class="synced">✅ 最新IOS版本 · 港澳台/百度坐标解析</p>
   </header>
 
   <div class="ctas">
@@ -160,13 +162,13 @@ footer b{ color:#8fe0e6; }
   <div class="divider"></div>
 
   <h2>安装与使用说明</h2>
-  <p class="sub">点击卡片或「一键导入」直接安装；或点击「复制」手动添加模块。</p>
+  <p class="sub">点击卡片或「一键导入shadowrocket」直接安装；或点击「复制」手动添加模块。</p>
   
   <div class="note">
     <div class="note-item">📍 <b>生效前提：</b></div>
     <div class="note-item" style="padding-left:18px; color:#a0aec0; line-height:1.7;">
-      ① 代理 App 已开启并连接（非「直连」模式）<br>
-      ② 开启 HTTPS 解密 (MITM) 并信任证书<br>
+      ① shadowrocket 已开启并连接<br>
+      ② 开启 HTTPS 解密 (MITM) 安装证书并信任证书<br>
       ③ 安装模块后选择位置点击「保存到设备」
     </div>
     <div class="note-warn">
