@@ -66,7 +66,7 @@ h1{ font-size:22px; font-weight:800; letter-spacing:.3px; background:linear-grad
   border: 1px solid rgba(23,195,207,0.3);
   border-radius: 8px;
   color: var(--cyan);
-  font-size: 12.px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all .15s ease;
@@ -80,27 +80,16 @@ h2{ font-size:16px; font-weight:800; margin-bottom:4px; display:flex; align-item
 h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:linear-gradient(180deg,var(--cyan),var(--green)); }
 .sub{ font-size:12.5px; color:var(--muted); margin:0 0 14px 13px; }
 
-/* 修正后的悬浮内嵌指示条 */
+/* 已经去除内部竖条的提示框样式 */
 .note{ 
-  position: relative;
   background: var(--card); 
   border: 1px solid var(--line); 
   border-radius: 14px; 
-  padding: 14px 16px 14px 24px; /* 增加左内边距给线条留出空间 */
+  padding: 16px; 
   font-size: 12.5px; 
   color: #c3ccdb; 
   margin-bottom: 16px; 
   line-height: 1.6;
-}
-.note::before{
-  content: "";
-  position: absolute;
-  left: 12px; /* 向内平移，避开外层边界 */
-  top: 14px;
-  bottom: 14px;
-  width: 4px;
-  border-radius: 2px; /* 全圆角胶囊样式 */
-  background: var(--cyan);
 }
 .note-item{ margin-bottom: 6px; }
 .note-item:last-child{ margin-bottom: 0; }
