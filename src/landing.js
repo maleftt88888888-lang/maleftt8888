@@ -80,8 +80,35 @@ h2{ font-size:16px; font-weight:800; margin-bottom:4px; display:flex; align-item
 h2::before{ content:""; width:4px; height:16px; border-radius:2px; background:linear-gradient(180deg,var(--cyan),var(--green)); }
 .sub{ font-size:12.5px; color:var(--muted); margin:0 0 14px 13px; }
 
-.note{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--cyan); border-radius:11px; padding:12px 14px; font-size:12.5px; color:#c3ccdb; margin-bottom:16px; line-height:1.6; }
-.note b{ color:var(--txt); }
+/* 完美裁切与层级排版的提示框样式 */
+.note{ 
+  position: relative;
+  background: var(--card); 
+  border: 1px solid var(--line); 
+  border-radius: 12px; 
+  padding: 14px 16px 14px 18px; 
+  font-size: 12.5px; 
+  color: #c3ccdb; 
+  margin-bottom: 16px; 
+  line-height: 1.6;
+  overflow: hidden;
+}
+.note::before{
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--cyan);
+}
+.note-item{ margin-bottom: 6px; }
+.note-item:last-child{ margin-bottom: 0; }
+.note-warn{ 
+  color: var(--red); 
+  font-size: 12px; 
+  margin-top: 8px; 
+  padding-top: 8px; 
+  border-top: 1px dashed var(--line); 
+}
 
 .plat{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:12px; cursor:pointer; transition:transform .12s, border-color .12s; }
 .plat:active{ transform:scale(.99); border-color:var(--cyan); }
@@ -134,9 +161,17 @@ footer b{ color:#8fe0e6; }
 
   <h2>安装与使用说明</h2>
   <p class="sub">点击卡片或「一键导入」直接安装；或点击「复制」手动添加模块。</p>
+  
   <div class="note">
-    📍 <b>生效前提：</b>① 代理 App 已开启并连接（非「直连」模式）；② 开启 HTTPS 解密 (MITM) 并信任证书；③ 安装模块后选择位置点击「保存到设备」。<br>
-    <span style="color:#ff5b60;">* 支持 iOS 26+，切换定位后若未即时生效可尝试重启一次设备清理缓存。</span>
+    <div class="note-item">📍 <b>生效前提：</b></div>
+    <div class="note-item" style="padding-left:18px; color:#a0aec0; line-height:1.7;">
+      ① 代理 App 已开启并连接（非「直连」模式）<br>
+      ② 开启 HTTPS 解密 (MITM) 并信任证书<br>
+      ③ 安装模块后选择位置点击「保存到设备」
+    </div>
+    <div class="note-warn">
+      * 支持 iOS 26+，切换定位后若未即时生效可尝试重启一次设备清理缓存。
+    </div>
   </div>
 
   <div id="plats"></div>
@@ -202,7 +237,6 @@ footer b{ color:#8fe0e6; }
     }).catch(function(){ toast('复制失败，请手动输入'); });
   }
 
-  // 鉴权拦截跳转
   var btnEnter = document.getElementById('btnEnter');
   if(btnEnter){
     btnEnter.addEventListener('click', function(){
@@ -222,7 +256,6 @@ footer b{ color:#8fe0e6; }
     });
   }
 
-  // 复制微信号
   var wcBtn = document.getElementById('copyWechat');
   if(wcBtn){
     wcBtn.addEventListener('click', function(){
@@ -230,7 +263,6 @@ footer b{ color:#8fe0e6; }
     });
   }
 
-  // 动态渲染平台列表
   var html = '';
   for (var i=0; i<PLATS.length; i++){
     var p = PLATS[i];
@@ -248,7 +280,6 @@ footer b{ color:#8fe0e6; }
   if(platsContainer){
     platsContainer.innerHTML = html;
 
-    // 整卡片点击支持
     var platCards = platsContainer.querySelectorAll('.plat');
     for (var k=0; k<platCards.length; k++){
       (function(card){
@@ -259,7 +290,6 @@ footer b{ color:#8fe0e6; }
       })(platCards[k]);
     }
 
-    // 复制按钮解耦绑定
     var btns = platsContainer.querySelectorAll('.copy');
     for (var j=0; j<btns.length; j++){
       (function(b){
