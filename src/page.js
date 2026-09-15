@@ -40,11 +40,10 @@ body {
 .topbar { position:sticky; top:0; z-index:1200; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 14px; background:rgba(10,12,17,.88); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); font-size:11px; color:var(--muted); }
 .topbar .back { flex:none; color:var(--cyan); font-weight:700; text-decoration:none; font-size:12.5px; }
 
-/* ---- anti-resale box: red bar + tint (fused with page style) ---- */
-.redbox { margin:12px 12px 0; padding:13px 15px; background:linear-gradient(180deg,rgba(255,91,96,.18),rgba(255,91,96,.06)); border:1px solid rgba(255,91,96,.5); border-left:5px solid var(--red); border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,.35); }
-.redbox .rt { color:#ff6b70; font-size:15px; font-weight:800; line-height:1.4; letter-spacing:.3px; }
-.redbox .rb { color:#ffdcdc; font-size:13px; font-weight:600; line-height:1.6; margin-top:8px; }
-.wechat-pill { display:inline-flex; align-items:center; gap:6px; background:rgba(255,91,96,.18); border:1px solid rgba(255,91,96,.4); padding:2px 8px; border-radius:6px; font-family:"SF Mono",ui-monospace,monospace; color:#ffe8e8; font-weight:700; margin:0 4px; }
+/* ---- info box: cyan/dark themed and fused with page style ---- */
+.redbox { margin:12px 12px 0; padding:13px 15px; background:linear-gradient(180deg,rgba(23,195,207,.12),rgba(23,195,207,.04)); border:1px solid rgba(23,195,207,.35); border-left:5px solid var(--cyan); border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,.35); }
+.redbox .rb { color:var(--txt); font-size:13px; font-weight:600; line-height:1.6; }
+.wechat-pill { display:inline-flex; align-items:center; gap:6px; background:rgba(23,195,207,.18); border:1px solid rgba(23,195,207,.4); padding:2px 8px; border-radius:6px; font-family:"SF Mono",ui-monospace,monospace; color:var(--mono); font-weight:700; margin:0 4px; }
 
 /* ---- map + its glass controls ---- */
 #map { height:50vh; width:100%; min-height:250px; background:#0a0c11; border-bottom:1px solid var(--line); }
@@ -108,11 +107,6 @@ body {
 .error-banner { background:linear-gradient(180deg,rgba(255,91,96,.18),rgba(255,91,96,.08)); border:1px solid rgba(255,91,96,.5); border-left:4px solid var(--red); color:#ffdcdc; padding:14px 16px; border-radius:12px; margin-bottom:12px; font-size:13.5px; line-height:1.6; display:none; }
 .error-banner b { display:block; margin-bottom:4px; color:#ff6b70; font-size:14.5px; }
 
-/* --- tiled diagonal watermark --- */
-.wm { position:fixed; inset:0; z-index:9998; pointer-events:none; overflow:hidden; user-select:none; -webkit-user-select:none; }
-.wm-i { position:absolute; inset:-60%; display:flex; flex-wrap:wrap; align-content:flex-start; transform:rotate(-24deg); opacity:.11; }
-.wm-i span { flex:none; padding:26px 30px; font-size:17.5px; font-weight:800; white-space:nowrap; color:#8fe0e6; letter-spacing:.4px; text-shadow:0 1px 3px rgba(0,0,0,.5); }
-
 .toast { position:fixed; top:60px; left:50%; transform:translateX(-50%); background:rgba(8,10,14,.92); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid var(--line); color:#fff; padding:11px 20px; border-radius:22px; font-size:14px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:9999; max-width:90vw; text-align:center; box-shadow:0 8px 28px rgba(0,0,0,.5); }
 .toast.show { opacity:1; }
 
@@ -161,11 +155,10 @@ body {
 </div>
 
 <div class="redbox">
-  <div class="rt">⚠️ 小紅書獨家ID 95975775001</div>
   <div class="rb">
     中国大陆微信技术售后：<span class="wechat-pill">LLME-love</span>
     <button class="btn btn-sm btn-secondary" style="padding:2px 8px;font-size:11px;" onclick="copyText('LLME-love').then(()=>toast('已复制微信号: LLME-love'))">复制微信</button>
-    <div style="margin-top:6px;font-size:12.5px;color:#ffeded;opacity:.95;">仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
+    <div style="margin-top:6px;font-size:12.5px;color:var(--muted);opacity:.95;">仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
   </div>
 </div>
 
@@ -247,7 +240,6 @@ body {
   </div>
   <div class="status" id="status">Pick a location, then tap "Save to Device" to write it to your proxy tool</div>
 </div>
-<div class="wm" id="wm" aria-hidden="true"><div class="wm-i" id="wmi"></div></div>
 <div class="toast" id="toast"></div>
 <div class="modal-overlay" id="favModal">
   <div class="modal">
@@ -832,29 +824,6 @@ document.addEventListener('paste', e => {
 document.getElementById('searchInput').addEventListener('keydown', e => { if(e.key==='Enter') searchPlace(); });
 document.getElementById('urlInput').addEventListener('keydown', e => { if(e.key==='Enter') parseUrl(); });
 document.getElementById('favNameInput').addEventListener('keydown', e => { if(e.key==='Enter') confirmFav(); });
-
-const WM_TEXT = 'YouTube：小紅書獨家ID 95975775001 @CyberHandyman 根据GitHub开源项目制作';
-function buildWM() {
-  let host = document.getElementById('wm');
-  if (!host) { host = document.createElement('div'); host.id = 'wm'; host.className = 'wm'; host.setAttribute('aria-hidden','true'); document.body.appendChild(host); }
-  host.className = 'wm'; host.removeAttribute('style');
-  const n = Math.ceil((window.innerWidth * window.innerHeight) / 12000) + 40;
-  let s = '';
-  for (let i = 0; i < n; i++) s += '<span>' + WM_TEXT + '<\\/span>';
-  host.innerHTML = '<div class="wm-i" id="wmi">' + s + '<\\/div>';
-}
-function ensureWM() {
-  const host = document.getElementById('wm'), inner = document.getElementById('wmi');
-  if (!host || !inner || inner.textContent.indexOf('CyberHandyman') < 0) { buildWM(); return; }
-  const ch = getComputedStyle(host), ci = getComputedStyle(inner);
-  if (ch.display === 'none' || ch.visibility === 'hidden' || ch.position !== 'fixed' || parseFloat(ci.opacity) < 0.03) {
-    host.removeAttribute('style'); inner.removeAttribute('style'); buildWM();
-  }
-}
-buildWM();
-try { new MutationObserver(ensureWM).observe(document.body, { childList: true }); } catch(e) {}
-setInterval(ensureWM, 1500);
-window.addEventListener('resize', buildWM);
 
 applyI18n();
 queryActive();
