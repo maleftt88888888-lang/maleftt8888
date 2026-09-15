@@ -20,7 +20,6 @@ export function getPageHtml() {
   --bg:#0a0c11; --card:#12161d; --card2:#191e28; --line:#242b38; --inset:rgba(255,255,255,.045);
   --cyan:#17c3cf; --cyan2:#0e97a1; --green:#22c55e; --red:#ff5b60; --orange:#f5a623;
   --txt:#eef2f8; --muted:#8a93a5; --mono:#7fe3ea;
-  /* legacy aliases kept so inline styles / JS class hooks keep working */
   --blue:#17c3cf; --gray:#8a93a5;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -38,24 +37,14 @@ body {
 ::-webkit-scrollbar-thumb { background:#2b3342; border-radius:3px; }
 
 /* ---- top bar: sticky glass ---- */
-.topbar { position:sticky; top:0; z-index:1200; display:flex; align-items:center; gap:10px; padding:9px 12px; background:rgba(10,12,17,.82); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); font-size:11px; color:var(--muted); }
-.topbar .back { flex:none; color:var(--cyan); font-weight:700; text-decoration:none; }
-.topbar .topcredit { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.topbar .topcredit a { color:#8fe0e6; text-decoration:none; font-weight:700; }
-.topbar .topcredit .ytname { font-size:13.5px; font-weight:800; color:#ff6b70; text-shadow:0 0 14px rgba(255,91,96,.4); }
-.topbar .topcredit .forkline { font-size:10.5px; color:#6b7484; }
-.topbar .topcredit .forkline .v11 { color:#22c55e; font-weight:700; }
-.topbar .tg { flex:none; color:#5cb8e8; font-weight:700; text-decoration:none; padding:3px 9px; border:1px solid rgba(42,171,238,.45); border-radius:20px; }
-.topbar .tg:active { background:rgba(42,171,238,.14); }
+.topbar { position:sticky; top:0; z-index:1200; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 14px; background:rgba(10,12,17,.88); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); font-size:11px; color:var(--muted); }
+.topbar .back { flex:none; color:var(--cyan); font-weight:700; text-decoration:none; font-size:12.5px; }
 
-/* ---- video tutorial CTA ---- */
-.vidbtn { display:flex; align-items:center; justify-content:center; gap:8px; margin:12px 12px 0; padding:15px; border-radius:13px; background:transparent; color:#ff6b70; border:1.5px solid rgba(255,91,96,.6); font-size:16px; font-weight:800; text-decoration:none; letter-spacing:.3px; transition:all .12s; }
-.vidbtn:active { background:rgba(255,91,96,.12); transform:scale(.98); }
-
-/* ---- anti-resale box: red bar + tint (matches landing) ---- */
-.redbox { margin:12px 12px 0; padding:14px 16px; background:linear-gradient(180deg,rgba(255,91,96,.16),rgba(255,91,96,.06)); border:1px solid rgba(255,91,96,.5); border-left:5px solid var(--red); border-radius:12px; }
-.redbox .rt { color:#ff6b70; font-size:17px; font-weight:800; line-height:1.4; letter-spacing:.3px; }
-.redbox .rb { color:#ffdcdc; font-size:13.5px; font-weight:700; line-height:1.7; margin-top:8px; }
+/* ---- anti-resale box: red bar + tint (fused with page style) ---- */
+.redbox { margin:12px 12px 0; padding:13px 15px; background:linear-gradient(180deg,rgba(255,91,96,.18),rgba(255,91,96,.06)); border:1px solid rgba(255,91,96,.5); border-left:5px solid var(--red); border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,.35); }
+.redbox .rt { color:#ff6b70; font-size:15px; font-weight:800; line-height:1.4; letter-spacing:.3px; }
+.redbox .rb { color:#ffdcdc; font-size:13px; font-weight:600; line-height:1.6; margin-top:8px; }
+.wechat-pill { display:inline-flex; align-items:center; gap:6px; background:rgba(255,91,96,.18); border:1px solid rgba(255,91,96,.4); padding:2px 8px; border-radius:6px; font-family:"SF Mono",ui-monospace,monospace; color:#ffe8e8; font-weight:700; margin:0 4px; }
 
 /* ---- map + its glass controls ---- */
 #map { height:50vh; width:100%; min-height:250px; background:#0a0c11; border-bottom:1px solid var(--line); }
@@ -79,7 +68,7 @@ body {
 .crow .cv { flex:1; min-width:0; font-family:"SF Mono",ui-monospace,monospace; font-size:14px; color:var(--mono); word-break:break-all; }
 .copybtn { flex:none; }
 
-/* ---- buttons (positions unchanged, look upgraded) ---- */
+/* ---- buttons ---- */
 .row { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
 .btn { flex:1; min-width:100px; padding:12px 16px; border:none; border-radius:11px; font-size:14px; font-weight:700; cursor:pointer; transition:all .15s; }
 .btn-primary { background:linear-gradient(135deg,var(--cyan),var(--cyan2)); color:#022a2d; box-shadow:0 6px 18px rgba(23,195,207,.28); }
@@ -119,7 +108,7 @@ body {
 .error-banner { background:linear-gradient(180deg,rgba(255,91,96,.18),rgba(255,91,96,.08)); border:1px solid rgba(255,91,96,.5); border-left:4px solid var(--red); color:#ffdcdc; padding:14px 16px; border-radius:12px; margin-bottom:12px; font-size:13.5px; line-height:1.6; display:none; }
 .error-banner b { display:block; margin-bottom:4px; color:#ff6b70; font-size:14.5px; }
 
-/* --- tiled diagonal watermark (continuous, self-restoring, never blocks the map) --- */
+/* --- tiled diagonal watermark --- */
 .wm { position:fixed; inset:0; z-index:9998; pointer-events:none; overflow:hidden; user-select:none; -webkit-user-select:none; }
 .wm-i { position:absolute; inset:-60%; display:flex; flex-wrap:wrap; align-content:flex-start; transform:rotate(-24deg); opacity:.11; }
 .wm-i span { flex:none; padding:26px 30px; font-size:17.5px; font-weight:800; white-space:nowrap; color:#8fe0e6; letter-spacing:.4px; text-shadow:0 1px 3px rgba(0,0,0,.5); }
@@ -171,9 +160,15 @@ body {
   <a class="back" href="/">← 主页</a>
 </div>
 
+<div class="redbox">
   <div class="rt">⚠️ 小紅書獨家ID 95975775001</div>
-  <div class="rb"></b>中国大陆微信技术售后LLME-love<br>仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
+  <div class="rb">
+    中国大陆微信技术售后：<span class="wechat-pill">LLME-love</span>
+    <button class="btn btn-sm btn-secondary" style="padding:2px 8px;font-size:11px;" onclick="copyText('LLME-love').then(()=>toast('已复制微信号: LLME-love'))">复制微信</button>
+    <div style="margin-top:6px;font-size:12.5px;color:#ffeded;opacity:.95;">仅供学习研究，禁止违法用途，后果自负、与作者无关，与 Apple 无关。</div>
+  </div>
 </div>
+
 <div style="position:relative">
 <div id="map"></div>
 <div class="lang-switch">
@@ -271,10 +266,10 @@ const PARSE_API = '/api/parse';
 const ELEV_API = 'https://api.open-meteo.com/v1/elevation';
 const FAV_KEY = 'ils_favorites';
 const LANG_KEY = 'ils_lang';
-let lat = 0, lon = 0;          // no hard-coded home city: nothing is "default" until the user picks
-let didInitialCenter = false;  // auto-center once, only if the device already has coordinates
+let lat = 0, lon = 0;
+let didInitialCenter = false;
 let selected = false;
-let elev = null, elevState = 'idle'; // idle | loading | ok | fail
+let elev = null, elevState = 'idle';
 let elevSeq = 0, elevTimer = null;
 const elevCache = new Map();
 let activeLon = null, activeLat = null, activeAcc = null, activeAlt = null, activeStatus = 'querying';
@@ -391,7 +386,7 @@ function detectLang() {
     const saved = localStorage.getItem(LANG_KEY);
     if (saved === 'zh' || saved === 'en') return saved;
   } catch(e) {}
-  return 'zh'; // default to Chinese; tap EN to switch (remembered per browser)
+  return 'zh';
 }
 let lang = detectLang();
 
@@ -420,7 +415,7 @@ function setLang(l) {
   applyI18n();
 }
 
-const map = L.map('map').setView([20, 0], 2);  // neutral world view — implies no default location
+const map = L.map('map').setView([20, 0], 2);
 const tiles = {
   satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom:19, attribution:'ArcGIS'}),
   wgs84: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {maxZoom:19, attribution:'ArcGIS WGS84'}),
@@ -444,7 +439,6 @@ function showMarker() { if (!markerShown) { marker.addTo(map); markerShown = tru
 marker.on('dragend', e => { const p=e.target.getLatLng(); setPos(p.lat, p.lng); });
 map.on('click', e => { setPos(e.latlng.lat, e.latlng.lng); });
 
-/* Altitude is an editable field (auto-filled from Open-Meteo, user can override). */
 function currentAlt() {
   const el = document.getElementById('altInput');
   if (!el) return null;
@@ -453,7 +447,6 @@ function currentAlt() {
 }
 function haccVal() { const n = parseInt((document.getElementById('haccInput')||{}).value, 10); return isFinite(n) && n > 0 ? n : 39; }
 function vaccVal() { const n = parseInt((document.getElementById('vaccInput')||{}).value, 10); return isFinite(n) && n > 0 ? n : 1000; }
-// randomRadius (Yu9191 v1.1 "扰动半径"): metres of random jitter per positioning. 0 = off.
 function jitterVal() { const n = parseInt((document.getElementById('jitterInput')||{}).value, 10); return isFinite(n) && n > 0 ? n : 0; }
 function setAltInput(v) {
   const el = document.getElementById('altInput');
@@ -497,7 +490,6 @@ function moveTo(newLat, newLon, zoom, knownAlt) {
   map.setView([lat, lon], zoom || 15);
 }
 
-/* ---- Elevation (Open-Meteo): debounced + cached, WGS-84 native ---- */
 function elevKey(la, lo) { return la.toFixed(4) + ',' + lo.toFixed(4); }
 function fetchElevation(la, lo) {
   const key = elevKey(la, lo);
@@ -530,7 +522,6 @@ function showError(show) {
   document.getElementById('errorBanner').style.display = show ? 'block' : 'none';
 }
 
-/* ---- Clipboard ---- */
 function copyText(str) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     return navigator.clipboard.writeText(str);
@@ -577,7 +568,6 @@ function copyParams(btn) {
   }).catch(() => toast(t('copy_failed'), 3000));
 }
 
-/* ---- Favorites (localStorage) ---- */
 function getFavs() {
   try { return JSON.parse(localStorage.getItem(FAV_KEY)) || []; } catch(e) { return []; }
 }
@@ -662,7 +652,6 @@ function clearAllFav() {
   toast(t('all_cleared'));
 }
 
-/* ---- Active location query ---- */
 function renderActive() {
   const el = document.getElementById('activeValue');
   if (activeStatus === 'ok') {
@@ -691,7 +680,6 @@ function queryActive() {
         activeLat = parseFloat(d.latitude);
         activeAcc = (d.horizontalAccuracy != null ? d.horizontalAccuracy : (d.accuracy || null));
         activeAlt = (d.altitude !== undefined && d.altitude !== null) ? d.altitude : null;
-        // Reflect the device's stored jitter radius back into the input (Yu9191 v1.1).
         if (d.randomRadius != null) { const ji = document.getElementById('jitterInput'); if (ji) ji.value = d.randomRadius; }
         activeStatus = 'ok';
         if (!didInitialCenter && !selected) {
@@ -724,7 +712,6 @@ function clearActive() {
     .catch(() => { toast(t('clear_failed_cfg'), 3000); });
 }
 
-/* ---- Save to device ---- */
 async function save() {
   if (!selected) { toast(t('pick_first')); return; }
   const btn = document.getElementById('saveBtn');
@@ -767,11 +754,10 @@ function locateMe() {
   );
 }
 
-/* Local fallback for plain "lat, lon" text when the parse API is unreachable. */
 function parseLocalCoords(text) {
   const m = text.match(/(-?[0-9]+\\.[0-9]+)[,\\s]+(-?[0-9]+\\.[0-9]+)/);
   if (!m) return null;
-  const a = parseFloat(m[1]), b = parseFloat(m[2]);
+  const a = parseFloat(m), b = parseFloat(m);
   if (Math.abs(a) <= 90 && Math.abs(b) <= 180) return { lat: a, lon: b };
   if (Math.abs(b) <= 90 && Math.abs(a) <= 180) return { lat: b, lon: a };
   return { lat: a, lon: b };
@@ -847,7 +833,6 @@ document.getElementById('searchInput').addEventListener('keydown', e => { if(e.k
 document.getElementById('urlInput').addEventListener('keydown', e => { if(e.key==='Enter') parseUrl(); });
 document.getElementById('favNameInput').addEventListener('keydown', e => { if(e.key==='Enter') confirmFav(); });
 
-/* ---- Watermark: tiled, non-interactive, rebuilt if tampered with ---- */
 const WM_TEXT = 'YouTube：小紅書獨家ID 95975775001 @CyberHandyman 根据GitHub开源项目制作';
 function buildWM() {
   let host = document.getElementById('wm');
