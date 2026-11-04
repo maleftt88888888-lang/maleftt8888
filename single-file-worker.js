@@ -577,6 +577,11 @@ body {
 
 .error-banner { background:linear-gradient(180deg,rgba(255,91,96,.18),rgba(255,91,96,.08)); border:1px solid rgba(255,91,96,.5); border-left:4px solid var(--red); color:#ffdcdc; padding:14px 16px; border-radius:12px; margin-bottom:12px; font-size:13.5px; line-height:1.6; display:none; }
 .error-banner b { display:block; margin-bottom:4px; color:#ff6b70; font-size:14.5px; }
+.diag-box { background:linear-gradient(180deg,rgba(23,195,207,.12),rgba(18,22,29,.88)); border:1px solid rgba(23,195,207,.45); border-radius:12px; padding:13px 14px; margin-top:10px; font-size:12.5px; line-height:1.65; color:var(--txt); display:none; }
+.diag-box.show { display:block; }
+.diag-item { padding:6px 0; border-bottom:1px dashed rgba(255,255,255,.08); }
+.diag-item:last-child { border-bottom:none; padding-bottom:0; }
+.diag-item b { color:var(--mono); }
 
 .toast { position:fixed; top:60px; left:50%; transform:translateX(-50%); background:rgba(8,10,14,.92); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid var(--line); color:#fff; padding:11px 20px; border-radius:22px; font-size:14px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:9999; max-width:90vw; text-align:center; box-shadow:0 8px 28px rgba(0,0,0,.5); }
 .toast.show { opacity:1; }
@@ -690,8 +695,10 @@ body {
     </div>
     <div class="row">
       <button class="btn btn-sm btn-secondary" data-i18n="refresh" onclick="queryActive()">Refresh</button>
+      <button class="btn btn-sm btn-primary" data-i18n="diag_btn" onclick="runDiag()">🔍 一键检测环境</button>
       <button class="btn btn-sm btn-danger" data-i18n="clear_data" onclick="clearActive()">Clear Data</button>
     </div>
+    <div class="diag-box" id="diagBox"></div>
   </div>
   <div class="card">
     <h3 data-i18n="paste_title">Paste map link</h3>
@@ -743,7 +750,7 @@ const I18N = {
   zh: {
     title: 'iOS 虚拟定位',
     layer_satellite: '卫星', layer_amap: '高德', layer_color: '彩色', layer_standard: '标准', layer_dark: '暗色',
-    err_html: '<b>模块未生效</b>请检查以下配置：<br>1. 已安装并启用 iOS Location Spoofer 模块<br>2. MITM 已开启，且证书已在「设置→通用→关于本机→证书信任设置」中打开完全信任（Safari 里点“继续访问”不算信任）<br>3. MITM 主机名包含 gs-loc.apple.com<br>4. 当前网络已走代理（请用 Safari 打开本页）',
+    err_html: '<b>模块未生效</b>请检查以下配置：<br>1. 已安装并启用 iOS Location Spoofer 模块<br>2. MITM 已开启，且证书已在「设置→通用→关于本机→证书信任设置」中打开完全信任（Safari 里点“继续访问”不算信任）<br>3. MITM 主机名包含 gs-loc.apple.com<br>4. 当前网络已走代理（请用 Safari 打开本页）<br><button class="btn btn-sm btn-primary" style="margin-top:8px" onclick="runDiag()">🔍 一键检测哪一步未生效</button>',
     choose_title: '选择目标位置',
     coords_hint: '点击地图或使用下方工具选择位置',
     save: '储存到设备', add_fav: '收藏位置', locate: '当前位置',
@@ -758,7 +765,7 @@ const I18N = {
       '<span class="src">参数建议来自上游项目 mekos2772 / ios-location-spoofer</span>',
     fav_title: '收藏的位置', clear_all: '清空全部',
     active_title: '当前生效坐标', active_label: '设备本地坐标 (latitude/longitude/altitude)',
-    refresh: '刷新', clear_data: '清除数据',
+    refresh: '刷新', diag_btn: '🔍 一键检测环境', clear_data: '清除数据',
     paste_title: '粘贴地图链接', paste_ph: 'Apple/Google/高德/百度地图链接 或 经纬度', parse: '解析',
     paste_hint: '支持 Apple Maps · Google Maps · 高德 · 百度 · 坐标文本（自动换算为 WGS-84）',
     search_title: '搜索地点', search_ph: '搜地名，回车列出候选（只预览，不改定位）', search: '搜索',
@@ -794,7 +801,7 @@ const I18N = {
   en: {
     title: 'iOS Location Spoofer',
     layer_satellite: 'Satellite', layer_amap: 'Amap', layer_color: 'Color', layer_standard: 'Standard', layer_dark: 'Dark',
-    err_html: '<b>Module not active</b>Please check the following:<br>1. The iOS Location Spoofer module is installed and enabled<br>2. MITM is on and the certificate is fully trusted in Settings > General > About > Certificate Trust Settings (tapping "visit this website" in Safari does not count)<br>3. The MITM hostname list includes gs-loc.apple.com<br>4. The current network is routed through the proxy (open this page in Safari)',
+    err_html: '<b>Module not active</b>Please check the following:<br>1. The iOS Location Spoofer module is installed and enabled<br>2. MITM is on and the certificate is fully trusted in Settings > General > About > Certificate Trust Settings (tapping "visit this website" in Safari does not count)<br>3. The MITM hostname list includes gs-loc.apple.com<br>4. The current network is routed through the proxy (open this page in Safari)<br><button class="btn btn-sm btn-primary" style="margin-top:8px" onclick="runDiag()">🔍 Run Setup Diagnostics</button>',
     choose_title: 'Choose target location',
     coords_hint: 'Tap the map or use the tools below to pick a location',
     save: 'Save to Device', add_fav: 'Add Favorite', locate: 'Current Location',
@@ -809,7 +816,7 @@ const I18N = {
       '<span class="src">Guidance from the upstream project mekos2772 / ios-location-spoofer</span>',
     fav_title: 'Favorites', clear_all: 'Clear All',
     active_title: 'Active coordinates', active_label: 'On-device coordinates (latitude/longitude/altitude)',
-    refresh: 'Refresh', clear_data: 'Clear Data',
+    refresh: 'Refresh', diag_btn: '🔍 Check Setup', clear_data: 'Clear Data',
     paste_title: 'Paste map link', paste_ph: 'Apple / Google / Amap / Baidu map link or coordinates', parse: 'Parse',
     paste_hint: 'Supports Apple Maps · Google Maps · Amap · Baidu · coordinate text (auto-converted to WGS-84)',
     search_title: 'Search place', search_ph: 'Search a place, Enter to list candidates (preview only)', search: 'Search',
@@ -1295,6 +1302,89 @@ document.addEventListener('paste', e => {
 document.getElementById('searchInput').addEventListener('keydown', e => { if(e.key==='Enter') searchPlace(); });
 document.getElementById('urlInput').addEventListener('keydown', e => { if(e.key==='Enter') parseUrl(); });
 document.getElementById('favNameInput').addEventListener('keydown', e => { if(e.key==='Enter') confirmFav(); });
+
+
+async function probeEndpoint(url, ms) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms || 5000);
+  try {
+    const r = await fetch(url, { method: 'GET', mode: 'cors', cache: 'no-store', signal: ctrl.signal });
+    clearTimeout(timer);
+    const d = await r.json();
+    return { ok: true, data: d };
+  } catch (e) {
+    clearTimeout(timer);
+    return { ok: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+async function runDiag() {
+  const box = document.getElementById('diagBox');
+  if (!box) return;
+  box.className = 'diag-box show';
+  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  const isZh = (lang === 'zh');
+  box.innerHTML = isZh ? '⏳ 正在检测代理、模块与系统证书信任状态…' : '⏳ Checking proxy, module and certificate trust…';
+
+  const ua = navigator.userAgent || '';
+  const isWeChat = /MicroMessenger/i.test(ua);
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  const [resMain, resCn] = await Promise.all([
+    probeEndpoint('https://gs-loc.apple.com/ils-settings/save?action=query&_t=' + Date.now(), 5000),
+    probeEndpoint('https://gs-loc-cn.apple.com/ils-settings/save?action=query&_t=' + Date.now(), 5000)
+  ]);
+
+  const items = [];
+  // 1. Browser check
+  if (isWeChat) {
+    items.push('<div class="diag-item">❌ <b>' + (isZh ? '浏览器环境' : 'Browser') + '</b>：' +
+      (isZh ? '当前在微信内置浏览器中，请点击右上角「…」选择<b>在默认浏览器(Safari)中打开</b>。' : 'Opened inside WeChat. Please open in Safari.') + '</div>');
+  } else if (isIOS) {
+    items.push('<div class="diag-item">✅ <b>' + (isZh ? '浏览器环境' : 'Browser') + '</b>：' +
+      (isZh ? 'iOS 浏览器环境正常' : 'iOS browser OK') + '</div>');
+  } else {
+    items.push('<div class="diag-item">⚠️ <b>' + (isZh ? '设备环境' : 'Device') + '</b>：' +
+      (isZh ? '当前非 iPhone/iPad 设备（请在已开启小火箭的 iOS 设备 Safari 中使用）' : 'Not an iOS device (use Safari on iOS with proxy enabled)') + '</div>');
+  }
+
+  // 2. Module & MITM interception on gs-loc.apple.com
+  if (resMain.ok) {
+    items.push('<div class="diag-item">✅ <b>' + (isZh ? '模块与代理拦截 (gs-loc.apple.com)' : 'Module Interception (gs-loc.apple.com)') + '</b>：' +
+      (isZh ? 'iLS Settings 脚本响应正常' : 'iLS Settings script responded OK') + '</div>');
+  } else {
+    items.push('<div class="diag-item">❌ <b>' + (isZh ? '模块与代理拦截 (gs-loc.apple.com)' : 'Module Interception (gs-loc.apple.com)') + '</b>：' +
+      (isZh ? '未拦截到响应。请检查：① 小火箭 VPN 已连接且全局路由选「配置」 ② 模块已启用 ③ HTTPS 解密已开启并安装证书' : 'Failed. Check proxy connection, module enabled, and MITM decryption enabled.') + '</div>');
+  }
+
+  // 3. System-wide root certificate full trust check via gs-loc-cn.apple.com
+  if (resMain.ok && resCn.ok) {
+    items.push('<div class="diag-item">✅ <b>' + (isZh ? '系统根证书完全信任 (gs-loc-cn.apple.com)' : 'System Root Certificate Trust (gs-loc-cn.apple.com)') + '</b>：' +
+      (isZh ? '双域名握手通过，系统定位服务可正常改写' : 'Both domains verified, system location daemon can be spoofed') + '</div>');
+    showError(false);
+  } else if (resMain.ok && !resCn.ok) {
+    items.push('<div class="diag-item">❌ <b>' + (isZh ? '系统根证书完全信任 (关键项)' : 'System Root Certificate Trust (Critical)') + '</b>：' +
+      (isZh ? '<b>检测到您仅在 Safari 点了“继续访问”，系统并未信任小火箭证书！</b>这样会导致能保存坐标但手机实际定位不变。<br>👉 解决：打开手机「设置 → 通用 → 关于本机 → 证书信任设置」，把小火箭根证书开关打开！' : '<b>Safari temporary bypass detected without system root trust!</b> Go to Settings > General > About > Certificate Trust Settings and enable full trust for the root certificate.') + '</div>');
+    showError(true);
+  } else {
+    items.push('<div class="diag-item">❌ <b>' + (isZh ? '系统根证书完全信任' : 'System Root Certificate Trust') + '</b>：' +
+      (isZh ? '握手失败。请确认：① 已在「设置 → 通用 → VPN与设备管理」安装证书描述文件 ② 已在「设置 → 通用 → 关于本机 → 证书信任设置」打开完全信任开关（若重装过证书请先删旧证书再重新生成安装）' : 'Handshake failed. Install the CA profile and enable full trust in Settings > General > About > Certificate Trust Settings.') + '</div>');
+    showError(true);
+  }
+
+  // 4. Stored coordinates status
+  if (resMain.ok && resMain.data && resMain.data.success && resMain.data.enabled) {
+    const d = resMain.data;
+    items.push('<div class="diag-item">✅ <b>' + (isZh ? '本机已存坐标' : 'Stored Coordinates') + '</b>：' +
+      Number(d.longitude).toFixed(6) + ', ' + Number(d.latitude).toFixed(6) +
+      (isZh ? '<br>💡 <b>生效提示</b>：每次修改位置后，请<b>开关一次飞行模式</b>，并到「设置 → 隐私与安全性 → 定位服务」<b>关闭定位等待 10 秒再开启</b>即可刷新全机定位。' : '<br>💡 Tip: Toggle Airplane Mode and turn Location Services OFF for 10s then ON to refresh location.') + '</div>');
+  } else if (resMain.ok) {
+    items.push('<div class="diag-item">ℹ️ <b>' + (isZh ? '本机已存坐标' : 'Stored Coordinates') + '</b>：' +
+      (isZh ? '当前未启用虚拟坐标（在地图上选点后点击「储存到设备」即可）' : 'No active coordinates stored yet (pick a point and tap Save to Device)') + '</div>');
+  }
+
+  box.innerHTML = items.join('');
+}
 
 applyI18n();
 queryActive();
