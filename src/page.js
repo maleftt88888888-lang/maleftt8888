@@ -272,7 +272,7 @@ const I18N = {
   zh: {
     title: 'iOS 虚拟定位',
     layer_satellite: '卫星', layer_amap: '高德', layer_color: '彩色', layer_standard: '标准', layer_dark: '暗色',
-    err_html: '<b>模块未生效</b>请检查以下配置：<br>1. 已安装并启用 iOS Location Spoofer 模块<br>2. MITM 已开启且信任证书<br>3. MITM 主机名包含 gs-loc.apple.com<br>4. 当前网络已走代理',
+    err_html: '<b>模块未生效</b>请检查以下配置：<br>1. 已安装并启用 iOS Location Spoofer 模块<br>2. MITM 已开启，且证书已在「设置→通用→关于本机→证书信任设置」中打开完全信任（Safari 里点“继续访问”不算信任）<br>3. MITM 主机名包含 gs-loc.apple.com<br>4. 当前网络已走代理（请用 Safari 打开本页）',
     choose_title: '选择目标位置',
     coords_hint: '点击地图或使用下方工具选择位置',
     save: '储存到设备', add_fav: '收藏位置', locate: '当前位置',
@@ -323,7 +323,7 @@ const I18N = {
   en: {
     title: 'iOS Location Spoofer',
     layer_satellite: 'Satellite', layer_amap: 'Amap', layer_color: 'Color', layer_standard: 'Standard', layer_dark: 'Dark',
-    err_html: '<b>Module not active</b>Please check the following:<br>1. The iOS Location Spoofer module is installed and enabled<br>2. MITM is on and the certificate is trusted<br>3. The MITM hostname list includes gs-loc.apple.com<br>4. The current network is routed through the proxy',
+    err_html: '<b>Module not active</b>Please check the following:<br>1. The iOS Location Spoofer module is installed and enabled<br>2. MITM is on and the certificate is fully trusted in Settings > General > About > Certificate Trust Settings (tapping "visit this website" in Safari does not count)<br>3. The MITM hostname list includes gs-loc.apple.com<br>4. The current network is routed through the proxy (open this page in Safari)',
     choose_title: 'Choose target location',
     coords_hint: 'Tap the map or use the tools below to pick a location',
     save: 'Save to Device', add_fav: 'Add Favorite', locate: 'Current Location',
@@ -685,7 +685,7 @@ function queryActive() {
       renderActive();
       renderFavs();
     })
-    .catch(() => { activeStatus = 'failed'; renderActive(); });
+    .catch(() => { activeStatus = 'failed'; renderActive(); showError(true); });
 }
 
 function clearActive() {
