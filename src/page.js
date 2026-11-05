@@ -260,7 +260,7 @@ body {
   </div>
 </div>
 <script>
-const SAVE_API = 'https://gs-loc.apple.com/ils-settings/save';
+const SAVE_API = 'https://gs-loc.apple.com/wloc-settings/save';
 const PARSE_API = '/api/parse';
 const ELEV_API = 'https://api.open-meteo.com/v1/elevation';
 const FAV_KEY = 'ils_favorites';
@@ -860,8 +860,8 @@ async function runDiag() {
   const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   const [resMain, resCn] = await Promise.all([
-    probeEndpoint('https://gs-loc.apple.com/ils-settings/save?action=query&_t=' + Date.now(), 5000),
-    probeEndpoint('https://gs-loc-cn.apple.com/ils-settings/save?action=query&_t=' + Date.now(), 5000)
+    probeEndpoint('https://gs-loc.apple.com/wloc-settings/save?action=query&_t=' + Date.now(), 5000),
+    probeEndpoint('https://gs-loc-cn.apple.com/wloc-settings/save?action=query&_t=' + Date.now(), 5000)
   ]);
 
   const items = [];
